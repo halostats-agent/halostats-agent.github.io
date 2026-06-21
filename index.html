@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>HaloStats — Statistika untuk semua</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F8FAFC; --surface:#fff; --ink:#0F172A; --muted:#64748B; --faint:#94A3B8;
+  --line:#E2E8F0; --blue:#2563EB; --blue-soft:#EFF6FF; --amber:#F59E0B;
+  --green:#16A34A; --green-soft:#ECFDF5; --red:#EF4444; --red-soft:#FEF2F2; --violet:#7C3AED;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px 64px;}
+a{color:var(--blue);}
+button{font-family:inherit;cursor:pointer;}
+
+header.top{position:sticky;top:0;z-index:50;background:rgba(248,250,252,0.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+.top-in{max-width:1080px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px;}
+.brand{display:flex;align-items:center;gap:9px;font-weight:900;font-size:19px;letter-spacing:-0.5px;}
+.brand .logo{font-size:22px;}
+.brand small{display:block;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0;}
+.spacer{flex:1;}
+.langtog{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface);}
+.langtog button{border:none;background:none;padding:6px 11px;font-size:12px;font-weight:800;color:var(--muted);}
+.langtog button.on{background:var(--blue);color:#fff;}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:9px;width:36px;height:34px;font-size:16px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
+
+.hero{padding:30px 0 14px;}
+.hero h1{font-size:30px;font-weight:900;letter-spacing:-0.8px;line-height:1.15;}
+.hero p{color:var(--muted);font-size:15px;margin-top:8px;max-width:620px;}
+
+.searchbar{display:flex;gap:8px;margin:20px 0 6px;flex-wrap:wrap;}
+.searchbar .ipt{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:0 12px;}
+.searchbar input{flex:1;border:none;outline:none;background:none;font-size:14px;padding:11px 0;font-family:inherit;color:var(--ink);}
+.searchbar .gen{background:var(--ink);color:#fff;border:none;border-radius:11px;padding:0 16px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.searchbar .gen:hover{background:#1e293b;}
+.hint{font-size:12px;color:var(--faint);margin-bottom:18px;}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 18px;}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--muted);}
+.chip.on{background:var(--blue-soft);border-color:#BFDBFE;color:var(--blue);}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:13px;}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:left;transition:transform .12s,box-shadow .12s,border-color .12s;display:flex;flex-direction:column;gap:7px;min-height:128px;}
+.tile:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,23,42,0.07);border-color:#CBD5E1;}
+.tile .ico{font-size:24px;}
+.tile .cat{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--blue);}
+.tile h3{font-size:16px;font-weight:800;letter-spacing:-0.3px;}
+.tile p{font-size:12.5px;color:var(--muted);line-height:1.5;}
+
+/* detail */
+.back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-size:13px;font-weight:700;padding:18px 0 12px;}
+.detail-head .cat{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--blue);}
+.detail-head h2{font-size:26px;font-weight:900;letter-spacing:-0.6px;line-height:1.2;margin-top:4px;}
+.detail-head .tag{color:var(--muted);font-size:15px;margin-top:6px;max-width:640px;}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-top:18px;}
+.scn{background:#F1F5F9;border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+.scn .q{font-weight:700;font-size:15px;}
+.scn .s{color:var(--muted);font-size:13.5px;margin-top:4px;}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:700;color:var(--ink);}
+.btn:hover{background:#F1F5F9;}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;}
+.btn.primary:hover{background:#1d4ed8;}
+.btn-row{display:flex;gap:9px;flex-wrap:wrap;}
+
+label.fld{font-size:12.5px;color:var(--muted);font-weight:600;}
+input[type=range]{width:100%;accent-color:var(--blue);height:22px;}
+.readout{font-size:13px;color:var(--muted);}
+.big{font-size:26px;font-weight:800;letter-spacing:-0.5px;}
+
+.feedback{margin-top:14px;font-size:14px;line-height:1.6;background:var(--blue-soft);border:1px solid #BFDBFE;border-radius:11px;padding:13px 15px;color:#1e3a8a;display:none;}
+
+.concept{margin-top:18px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:22px;display:none;}
+.concept .badge{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--blue);background:var(--blue-soft);border-radius:7px;padding:4px 10px;margin-bottom:12px;}
+.concept h3{font-size:21px;font-weight:900;letter-spacing:-0.4px;}
+.concept .sub{color:var(--muted);font-size:13px;margin-top:2px;margin-bottom:16px;}
+.concept .sec{margin-top:16px;}
+.concept .sec .h{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--faint);margin-bottom:5px;}
+.concept .sec p{font-size:14.5px;line-height:1.7;}
+.formula{font-family:'Plus Jakarta Sans',ui-monospace,monospace;background:#0F172A;color:#E2E8F0;border-radius:10px;padding:13px 15px;font-size:13.5px;line-height:1.8;overflow-x:auto;font-weight:500;}
+.formula .v{color:#FCD34D;}
+
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;display:none;align-items:center;justify-content:center;padding:18px;}
+.modal{background:var(--surface);border-radius:16px;max-width:430px;width:100%;padding:22px;}
+.modal h4{font-size:18px;font-weight:900;margin-bottom:4px;}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:14px;}
+.modal label{font-size:12px;font-weight:700;color:var(--muted);display:block;margin:10px 0 5px;}
+.modal input,.modal select{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:13px;font-family:inherit;outline:none;}
+.modal input:focus{border-color:var(--blue);}
+
+footer{text-align:center;color:var(--faint);font-size:12px;padding:34px 0 0;}
+.dotline{font-size:11px;}
+
+@media(max-width:560px){
+  .hero h1{font-size:25px;} .detail-head h2{font-size:22px;}
+  .panel,.concept{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><span class="logo">📊</span><div>HaloStats<small data-i="brandsub"></small></div></div>
+    <div class="spacer"></div>
+    <div class="langtog">
+      <button id="lang-id" class="on" onclick="setLang('id')">ID</button>
+      <button id="lang-en" onclick="setLang('en')">EN</button>
+    </div>
+    <button class="iconbtn" title="API key" onclick="openSettings()">⚙️</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- LIST VIEW -->
+  <section id="view-list">
+    <div class="hero">
+      <h1 data-i="heroTitle"></h1>
+      <p data-i="heroSub"></p>
+    </div>
+    <div class="searchbar">
+      <div class="ipt">🔎 <input id="q" oninput="onSearch()" data-iph="searchPh"/></div>
+      <button class="gen" onclick="generate()">✨ <span data-i="genBtn"></span></button>
+    </div>
+    <div class="hint" data-i="genHint"></div>
+    <div class="chips" id="chips"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- DETAIL VIEW -->
+  <section id="view-detail" style="display:none;">
+    <button class="back" onclick="goList()">← <span data-i="back"></span></button>
+    <div class="detail-head">
+      <div class="cat" id="d-cat"></div>
+      <h2 id="d-title"></h2>
+      <div class="tag" id="d-tag"></div>
+    </div>
+    <div class="panel" id="d-interactive"></div>
+    <div class="concept" id="d-concept"></div>
+  </section>
+
+  <footer>
+    <div data-i="footer"></div>
+    <div class="dotline">halostats-agent.github.io</div>
+  </footer>
+</div>
+
+<!-- settings modal -->
+<div class="modal-bg" id="settings">
+  <div class="modal">
+    <h4 data-i="setTitle"></h4>
+    <p data-i="setDesc"></p>
+    <label data-i="setKey"></label>
+    <input id="apikey" type="password" placeholder="sk-ant-..."/>
+    <label data-i="setModel"></label>
+    <input id="model" value="claude-sonnet-4-6"/>
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end;">
+      <button class="btn" onclick="closeSettings()" data-i="cancel"></button>
+      <button class="btn primary" onclick="saveSettings()" data-i="save"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================ i18n + state ============================ */
+var LANG = localStorage.getItem('hs_lang') || 'id';
+var UI = {
+  brandsub:{id:' · Statistika untuk semua', en:' · Statistics for everyone'},
+  heroTitle:{id:'Pahami statistika lewat intuisi, bukan rumus.', en:'Understand statistics through intuition, not formulas.'},
+  heroSub:{id:'Tebak dulu, lihat kejutannya, baru naik level ke teori. Tiap konsep punya satu eksperimen kecil yang bisa kamu mainkan.', en:'Guess first, see the surprise, then level up to the theory. Each concept has one tiny experiment you can play with.'},
+  searchPh:{id:'Cari konsep… (mis. regresi, p-value)', en:'Search a concept… (e.g. regression, p-value)'},
+  genBtn:{id:'Buat dengan AI', en:'Generate with AI'},
+  genHint:{id:'Tidak ketemu? Ketik konsep apa pun lalu klik “Buat dengan AI” (butuh API key Anthropic kamu).', en:'Not here? Type any concept and click “Generate with AI” (needs your Anthropic API key).'},
+  back:{id:'Semua konsep', en:'All concepts'},
+  footer:{id:'HaloStats — gratis, tanpa iklan, sumber terbuka.', en:'HaloStats — free, no ads, open source.'},
+  reveal:{id:'Lihat jawabannya', en:'Reveal the answer'},
+  setTitle:{id:'Anthropic API key', en:'Anthropic API key'},
+  setDesc:{id:'Disimpan hanya di browser kamu (localStorage), tidak dikirim ke mana pun selain Anthropic.', en:'Stored only in your browser (localStorage), sent nowhere except Anthropic.'},
+  setKey:{id:'API key', en:'API key'},
+  setModel:{id:'Model', en:'Model'},
+  cancel:{id:'Batal', en:'Cancel'}, save:{id:'Simpan', en:'Save'},
+  named:{id:'Ternyata ini ada namanya', en:'Turns out this has a name'},
+  cDef:{id:'Definisi', en:'Definition'}, cForm:{id:'Formulasi', en:'Formula'},
+  cTheory:{id:'Penalaran teoritis', en:'The theory'}, cPractice:{id:'Penalaran praktis', en:'In practice'},
+  allcat:{id:'Semua', en:'All'}
+};
+function t(k){ return (UI[k]||{})[LANG] || ''; }
+function L(o){ return o ? (o[LANG]!==undefined ? o[LANG] : o.id) : ''; }
+
+/* ============================ concepts ============================ */
+var CONCEPTS = [];
+function addConcept(o){ CONCEPTS.push(o); }
+
+/* seeded RNG helpers */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gauss(rng){var u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* ---------- 1. Regression to the mean ---------- */
+addConcept({
+  id:'rtm', icon:'🎯', color:'#2563EB',
+  cat:{id:'Bias & ilusi', en:'Bias & illusion'},
+  title:{id:'Regresi ke rata-rata', en:'Regression to the mean'},
+  tag:{id:'Kenapa "yang terbaik" hampir selalu menurun, dan "yang terburuk" membaik — tanpa sebab khusus.', en:'Why "the best" almost always declines and "the worst" improves — for no special reason.'},
+  hook:{id:'Sebuah klinik memanggil 10 orang dengan kolesterol tertinggi bulan ini untuk program diet. Bulan depan rata-rata mereka turun. Penyebab utamanya?', en:'A clinic enrolls the 10 people with the highest cholesterol this month into a diet program. Next month their average drops. The main cause?'},
+  build:function(host,lang,reveal){
+    var seed=42;
+    function run(){
+      var rng=mulberry32(seed);
+      var N=40, people=[];
+      for(var i=0;i<N;i++){ var base=gauss(rng)*12+200; people.push({base:base,m1:base+gauss(rng)*12,m2:base+gauss(rng)*12}); }
+      var idx=people.map(function(p,i){return i;}).sort(function(a,b){return people[b].m1-people[a].m1;}).slice(0,10);
+      var avg=function(f){return idx.reduce(function(s,i){return s+f(people[i]);},0)/idx.length;};
+      var a1=avg(function(p){return p.m1;}), a2=avg(function(p){return p.m2;});
+      var allMean=people.reduce(function(s,p){return s+p.base;},0)/N;
+      // plot
+      var W=440,H=210,pad=34;
+      var vals=[]; people.forEach(function(p){vals.push(p.m1,p.m2);});
+      var lo=Math.min.apply(null,vals)-4, hi=Math.max.apply(null,vals)+4;
+      var X=function(c){return c===1?pad+40:W-pad-40;};
+      var Y=function(v){return H-pad-(v-lo)/(hi-lo)*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<text x="'+X(1)+'" y="16" text-anchor="middle" font-size="11" font-weight="800" fill="#64748B">'+(lang==='id'?'Bulan ini':'This month')+'</text>';
+      s+='<text x="'+X(2)+'" y="16" text-anchor="middle" font-size="11" font-weight="800" fill="#64748B">'+(lang==='id'?'Bulan depan':'Next month')+'</text>';
+      var mY=Y(allMean);
+      s+='<line x1="'+pad+'" y1="'+mY+'" x2="'+(W-pad)+'" y2="'+mY+'" stroke="#CBD5E1" stroke-dasharray="4,3"/>';
+      s+='<text x="'+(W-pad)+'" y="'+(mY-5)+'" text-anchor="end" font-size="10" fill="#94A3B8">'+(lang==='id'?'rata-rata semua':'overall mean')+'</text>';
+      people.forEach(function(p,i){ if(idx.indexOf(i)<0){ s+='<circle cx="'+X(1)+'" cy="'+Y(p.m1)+'" r="3" fill="#CBD5E1"/><circle cx="'+X(2)+'" cy="'+Y(p.m2)+'" r="3" fill="#CBD5E1"/>'; }});
+      idx.forEach(function(i){ var p=people[i]; s+='<line x1="'+X(1)+'" y1="'+Y(p.m1)+'" x2="'+X(2)+'" y2="'+Y(p.m2)+'" stroke="#F59E0B" stroke-width="1.4" opacity="0.7"/>'; });
+      idx.forEach(function(i){ var p=people[i]; s+='<circle cx="'+X(1)+'" cy="'+Y(p.m1)+'" r="4.5" fill="#2563EB"/><circle cx="'+X(2)+'" cy="'+Y(p.m2)+'" r="4.5" fill="#2563EB"/>'; });
+      s+='</svg>';
+      document.getElementById('rtm-plot').innerHTML=s;
+      document.getElementById('rtm-stat').innerHTML=(lang==='id'?'Rata-rata 10 teratas: ':'Top-10 average: ')+'<b>'+a1.toFixed(0)+'</b> → <b style="color:#16A34A">'+a2.toFixed(0)+'</b> '+(lang==='id'?'(turun '+(a1-a2).toFixed(0)+', padahal tidak ada pengobatan apa pun)':'(down '+(a1-a2).toFixed(0)+', with no treatment at all)');
+    }
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="rtm-guess">'+
+        '<button class="btn" data-v="diet">'+(lang==='id'?'Programnya berhasil':'The program worked')+'</button>'+
+        '<button class="btn" data-v="reg">'+(lang==='id'?'Kebanyakan cuma kebetulan':'Mostly just chance')+'</button>'+
+      '</div>'+
+      '<div id="rtm-after" style="display:none;margin-top:16px;">'+
+        '<div id="rtm-plot"></div>'+
+        '<p class="readout" id="rtm-stat" style="margin-top:8px;"></p>'+
+        '<div class="btn-row" style="margin-top:12px;"><button class="btn" id="rtm-again">'+(lang==='id'?'🎲 Acak ulang':'🎲 Reshuffle')+'</button></div>'+
+        '<div class="feedback" id="rtm-fb" style="display:block;"></div>'+
+      '</div>';
+    var self=this;
+    host.querySelectorAll('#rtm-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('rtm-after').style.display='block';
+      var fb=document.getElementById('rtm-fb');
+      fb.innerHTML=(b.dataset.v==='reg')
+        ? (lang==='id'?'<b>Tepat.</b> Mereka dipilih justru karena kebetulan lagi ekstrem tinggi. Diukur lagi, keberuntungan buruk itu sebagian besar hilang — angka mereka <i>regresi</i> mendekati rata-rata, bahkan tanpa intervensi.':'<b>Right.</b> They were picked precisely because they were extreme by chance. Measured again, that bad luck mostly disappears — their numbers <i>regress</i> toward the mean, even with no intervention.')
+        : (lang==='id'?'<b>Jebakan klasik.</b> Programnya mungkin sedikit membantu, tapi penurunan terjadi <i>walau tanpa pengobatan</i>. Karena mereka dipilih saat ekstrem tinggi (sebagian karena kebetulan), pengukuran berikutnya pasti turun. Ini regresi ke rata-rata, bukan bukti program berhasil.':'<b>Classic trap.</b> The program may help a little, but the drop happens <i>even without treatment</i>. Because they were selected at an extreme high (partly by luck), the next measurement is bound to fall. That is regression to the mean, not proof the program worked.');
+      run(); reveal();
+    };});
+    setTimeout(function(){ var ag=document.getElementById('rtm-again'); if(ag) ag.onclick=function(){seed=Math.floor(Math.random()*1e6);run();}; },0);
+  },
+  concept:{
+    name:{id:'Regresi ke rata-rata', en:'Regression to the mean'},
+    sub:{id:'Sir Francis Galton, 1886', en:'Sir Francis Galton, 1886'},
+    def:{id:'Bila sebuah pengukuran ekstrem (sangat tinggi/rendah) sebagian dipengaruhi kebetulan, maka pengukuran berikutnya cenderung lebih dekat ke nilai rata-rata.', en:'When an extreme measurement (very high/low) is partly driven by chance, the next measurement tends to land closer to the average.'},
+    formula:'E[X₂ | X₁] = μ + <span class="v">ρ</span>·(X₁ − μ),   0 ≤ <span class="v">ρ</span> < 1',
+    theory:{id:'Setiap nilai amatan = sinyal sejati + derau acak. Saat kamu menyaring nilai paling ekstrem, kamu otomatis memilih kasus dengan derau yang kebetulan searah ekstrem. Karena derau tidak berkorelasi antar waktu, pada pengukuran kedua derau itu rata-rata kembali nol, sehingga nilai bergeser menuju mean sebesar (1−ρ) dari simpangannya. Semakin lemah korelasi ρ antar pengukuran, semakin kuat regresinya.', en:'Every observation = true signal + random noise. When you filter for the most extreme values, you automatically select cases whose noise happened to point in the extreme direction. Because noise is uncorrelated across time, on the second measurement it averages back to zero, so values shift toward the mean by (1−ρ) of their deviation. The weaker the correlation ρ, the stronger the regression.'},
+    practice:{id:'Hati-hati menilai sebab-akibat dari kelompok yang dipilih karena ekstrem: pasien terparah yang "membaik", sekolah terburuk yang "naik" setelah intervensi, atau pemain rookie hebat yang "kena kutukan musim kedua". Sebagian besar perubahan itu bisa murni regresi. Pelajaran praktisnya: gunakan kelompok kontrol acak, jangan menyimpulkan dari before–after pada kelompok ekstrem saja.', en:'Be careful inferring causation from groups chosen for being extreme: the sickest patients who "improve", the worst schools that "rise" after an intervention, or the star rookie hit by a "sophomore slump". Much of that change can be pure regression. Practical lesson: use a randomized control group; never conclude from before–after on an extreme group alone.'}
+  }
+});
+
+/* ---------- 2. Simpson's paradox ---------- */
+addConcept({
+  id:'simpson', icon:'🔀', color:'#7C3AED',
+  cat:{id:'Bias & ilusi', en:'Bias & illusion'},
+  title:{id:'Paradoks Simpson', en:"Simpson's paradox"},
+  tag:{id:'Sebuah tren bisa muncul di tiap kelompok, lalu berbalik arah saat semua kelompok digabung.', en:'A trend can appear in every subgroup, then reverse when all groups are combined.'},
+  hook:{id:'Obat A vs Obat B untuk batu ginjal. Pada batu kecil, A lebih sukses. Pada batu besar, A juga lebih sukses. A menang di kedua kelompok — berarti secara total A pasti menang juga?', en:'Drug A vs Drug B for kidney stones. On small stones, A wins. On large stones, A wins too. A wins in both groups — so overall A must win as well?'},
+  build:function(host,lang,reveal){
+    var data={
+      A:{small:{s:81,n:87}, large:{s:192,n:263}},
+      B:{small:{s:234,n:270}, large:{s:55,n:80}}
+    };
+    var pct=function(o){return (o.s/o.n*100);};
+    var mode='split';
+    function bar(label,val,col){ return '<div style="margin:7px 0;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>'+label+'</span><span style="color:'+col+'">'+val.toFixed(0)+'%</span></div><div style="background:#F1F5F9;border-radius:6px;height:12px;margin-top:3px;"><div style="width:'+val+'%;height:12px;border-radius:6px;background:'+col+'"></div></div></div>'; }
+    function render(){
+      var h='';
+      if(mode==='split'){
+        h+='<div style="font-size:12px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">'+(lang==='id'?'Batu kecil':'Small stones')+'</div>';
+        h+=bar('A',pct(data.A.small),'#2563EB')+bar('B',pct(data.B.small),'#7C3AED');
+        h+='<div style="font-size:12px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin:14px 0 4px;">'+(lang==='id'?'Batu besar':'Large stones')+'</div>';
+        h+=bar('A',pct(data.A.large),'#2563EB')+bar('B',pct(data.B.large),'#7C3AED');
+        h+='<p class="readout" style="margin-top:12px;">'+(lang==='id'?'A unggul di <b>kedua</b> kelompok. ✅':'A wins in <b>both</b> groups. ✅')+'</p>';
+      } else {
+        var At=(data.A.small.s+data.A.large.s)/(data.A.small.n+data.A.large.n)*100;
+        var Bt=(data.B.small.s+data.B.large.s)/(data.B.small.n+data.B.large.n)*100;
+        h+='<div style="font-size:12px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">'+(lang==='id'?'Semua pasien digabung':'All patients combined')+'</div>';
+        h+=bar('A',At,'#2563EB')+bar('B',Bt,'#7C3AED');
+        h+='<p class="readout" style="margin-top:12px;">'+(lang==='id'?'Tapi total <b style="color:#7C3AED">B menang</b> ('+Bt.toFixed(0)+'% vs '+At.toFixed(0)+'%) 🤯':'But overall <b style="color:#7C3AED">B wins</b> ('+Bt.toFixed(0)+'% vs '+At.toFixed(0)+'%) 🤯')+'</p>';
+      }
+      document.getElementById('simp-out').innerHTML=h;
+    }
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="simp-guess">'+
+        '<button class="btn" data-v="A">'+(lang==='id'?'Ya, A menang total':'Yes, A wins overall')+'</button>'+
+        '<button class="btn" data-v="B">'+(lang==='id'?'Belum tentu':'Not necessarily')+'</button>'+
+      '</div>'+
+      '<div id="simp-after" style="display:none;margin-top:16px;">'+
+        '<div class="btn-row" style="margin-bottom:14px;">'+
+          '<button class="btn primary" id="simp-split">'+(lang==='id'?'Dipisah per ukuran':'Split by size')+'</button>'+
+          '<button class="btn" id="simp-merge">'+(lang==='id'?'Gabung total':'Combine total')+'</button>'+
+        '</div>'+
+        '<div id="simp-out"></div>'+
+        '<div class="feedback" id="simp-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#simp-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('simp-after').style.display='block';
+      var fb=document.getElementById('simp-fb');
+      fb.innerHTML=(b.dataset.v==='B')
+        ?(lang==='id'?'<b>Benar.</b> Klik tombol di bawah dan lihat sendiri: A menang di tiap kelompok, tapi B menang secara total. Dokter cenderung memberi A untuk kasus berat (batu besar), jadi A "dihukum" oleh kasus yang memang lebih sulit.':'<b>Correct.</b> Toggle the buttons below and see for yourself: A wins each group but B wins overall. Doctors tended to give A to the hard cases (large stones), so A gets "penalized" by tougher cases.')
+        :(lang==='id'?'<b>Coba lihat dulu.</b> Klik “Gabung total”. A menang di tiap kelompok, tapi <i>kalah</i> saat digabung — karena ukuran batu (perancu) tidak terbagi rata antar obat.':'<b>Take a look.</b> Click “Combine total”. A wins each group but <i>loses</i> when combined — because stone size (a confounder) is not split evenly between the drugs.');
+      render(); reveal();
+    };});
+    setTimeout(function(){
+      var sp=document.getElementById('simp-split'), mg=document.getElementById('simp-merge');
+      if(sp) sp.onclick=function(){mode='split';sp.className='btn primary';mg.className='btn';render();};
+      if(mg) mg.onclick=function(){mode='merge';mg.className='btn primary';sp.className='btn';render();};
+    },0);
+  },
+  concept:{
+    name:{id:'Paradoks Simpson', en:"Simpson's paradox"},
+    sub:{id:'Edward Simpson, 1951', en:'Edward Simpson, 1951'},
+    def:{id:'Fenomena ketika hubungan antara dua variabel berbalik arah atau hilang saat data dari beberapa kelompok digabungkan menjadi satu.', en:'A phenomenon where the association between two variables reverses or disappears when data from several groups are merged into one.'},
+    formula:'a/b &lt; c/d  <span class="v">dan</span>  e/f &lt; g/h<br>tetapi  (a+e)/(b+f) &gt; (c+g)/(d+h)',
+    theory:{id:'Paradoks ini muncul karena ada variabel perancu (di contoh: ukuran batu) yang berkorelasi sekaligus dengan kelompok dan dengan hasil, serta tersebar tidak seimbang antar kelompok. Saat digabung, rata-rata gabungan menjadi rata-rata berbobot yang didominasi oleh subkelompok berukuran besar. Bobot yang timpang inilah yang bisa membalik kesimpulan. Secara aljabar, perbandingan pecahan tidak "menjumlah" — (a/b dan e/f) tidak menentukan (a+e)/(b+f).', en:'The paradox arises from a confounding variable (here: stone size) that correlates with both the group and the outcome, and is unevenly distributed across groups. When merged, the combined rate becomes a weighted average dominated by the larger subgroup. This skewed weighting can flip the conclusion. Algebraically, ratios do not "add" — (a/b and e/f) do not determine (a+e)/(b+f).'},
+    practice:{id:'Selalu tanyakan: "apakah ini agregat yang menyembunyikan kelompok?" Paradoks Simpson sering muncul di evaluasi kebijakan, perbandingan rumah sakit, gaji per gender, atau metrik produk. Solusinya bukan memilih "versi gabung" atau "versi pisah" secara membabi buta, melainkan memahami variabel perancu mana yang relevan secara kausal, lalu menstratifikasi (memisah) berdasarkan variabel itu.', en:'Always ask: "is this an aggregate hiding subgroups?" Simpson\'s paradox shows up in policy evaluation, hospital comparisons, gender pay gaps, and product metrics. The fix is not to blindly pick the "combined" or "split" version, but to understand which confounder is causally relevant, then stratify (split) by it.'}
+  }
+});
+
+/* ---------- 3. Law of large numbers ---------- */
+addConcept({
+  id:'lln', icon:'🪙', color:'#16A34A',
+  cat:{id:'Probabilitas', en:'Probability'},
+  title:{id:'Hukum bilangan besar', en:'Law of large numbers'},
+  tag:{id:'Makin banyak percobaan, rata-ratanya makin stabil mendekati nilai sejati — tapi ada kejutan soal selisihnya.', en:'More trials make the average settle near the true value — but there is a twist about the gap.'},
+  hook:{id:'Koin adil dilempar makin banyak kali. Geser jumlah lemparan dan amati dua angka: proporsi angka (mendekati 50%?) dan selisih jumlah |angka − gambar|. Apa yang terjadi pada selisih itu saat lemparan makin banyak?', en:'A fair coin is flipped more and more. Slide the number of flips and watch two numbers: the proportion of heads (near 50%?) and the count gap |heads − tails|. What happens to that gap as flips grow?'},
+  build:function(host,lang,reveal){
+    var seed=7, MAXP=14; // 2^14 = 16384
+    var flips=[]; function regen(){ var rng=mulberry32(seed); flips=[]; for(var i=0;i<16384;i++) flips.push(rng()<0.5?1:0); }
+    regen();
+    function compute(n){ var h=0; for(var i=0;i<n;i++) h+=flips[i]; return {h:h,t:n-h,prop:h/n,diff:Math.abs(2*h-n)}; }
+    function draw(n){
+      var W=460,H=200,pad=30;
+      var pts=[]; var step=Math.max(1,Math.floor(n/240)); var h=0;
+      for(var i=0;i<n;i++){ h+=flips[i]; if(i%step===0||i===n-1){ pts.push([i+1,h/(i+1)]); } }
+      var X=function(i){return pad+ (Math.log(i)/Math.log(n))*(W-2*pad);};
+      var Y=function(p){return pad+(1-p)*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      var y50=Y(0.5);
+      s+='<line x1="'+pad+'" y1="'+y50+'" x2="'+(W-pad)+'" y2="'+y50+'" stroke="#CBD5E1" stroke-dasharray="4,3"/>';
+      s+='<text x="'+(W-pad)+'" y="'+(y50-5)+'" text-anchor="end" font-size="10" fill="#94A3B8">0.5</text>';
+      var d=''; pts.forEach(function(p,i){ d+=(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)+' '; });
+      s+='<path d="'+d+'" fill="none" stroke="#16A34A" stroke-width="2"/>';
+      s+='<text x="'+pad+'" y="'+(H-8)+'" font-size="10" fill="#94A3B8">1</text>';
+      s+='<text x="'+(W-pad)+'" y="'+(H-8)+'" text-anchor="end" font-size="10" fill="#94A3B8">'+n+' '+(lang==='id'?'lemparan':'flips')+'</text>';
+      s+='</svg>';
+      return s;
+    }
+    function update(){
+      var n=Math.round(Math.pow(2,+document.getElementById('lln-r').value));
+      var c=compute(n);
+      document.getElementById('lln-n').textContent=n.toLocaleString();
+      document.getElementById('lln-plot').innerHTML=draw(n);
+      document.getElementById('lln-prop').textContent=(c.prop*100).toFixed(1)+'%';
+      document.getElementById('lln-diff').textContent=c.diff.toLocaleString();
+    }
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="lln-guess">'+
+        '<button class="btn" data-v="shrink">'+(lang==='id'?'Selisih makin kecil':'The gap shrinks')+'</button>'+
+        '<button class="btn" data-v="grow">'+(lang==='id'?'Selisih makin besar':'The gap grows')+'</button>'+
+      '</div>'+
+      '<div id="lln-after" style="display:none;margin-top:16px;">'+
+        '<label class="fld">'+(lang==='id'?'Jumlah lemparan: ':'Number of flips: ')+'<b id="lln-n">256</b></label>'+
+        '<input type="range" id="lln-r" min="3" max="'+MAXP+'" value="8" step="0.05" oninput="(window.__lln_u&&window.__lln_u())"/>'+
+        '<div id="lln-plot" style="margin-top:6px;"></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#ECFDF5;border-radius:10px;padding:12px;"><div class="readout">'+(lang==='id'?'Proporsi angka':'Proportion of heads')+'</div><div class="big" id="lln-prop" style="color:#16A34A">50%</div></div>'+
+          '<div style="background:#FEF2F2;border-radius:10px;padding:12px;"><div class="readout">'+(lang==='id'?'Selisih |angka − gambar|':'Gap |heads − tails|')+'</div><div class="big" id="lln-diff" style="color:#EF4444">0</div></div>'+
+        '</div>'+
+        '<div class="feedback" id="lln-fb" style="display:block;"></div>'+
+      '</div>';
+    window.__lln_u=update;
+    host.querySelectorAll('#lln-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('lln-after').style.display='block';
+      var fb=document.getElementById('lln-fb');
+      fb.innerHTML=(b.dataset.v==='grow')
+        ?(lang==='id'?'<b>Tajam!</b> Ini bagian yang sering disalahpahami. <b>Proporsi</b> memang menyatu ke 50% (itulah hukum bilangan besar), tapi <b>selisih jumlah absolut</b> justru cenderung membesar (tumbuh ~√n). Stabil dalam rasio, tidak stabil dalam selisih.':'<b>Sharp!</b> This is the commonly misunderstood part. The <b>proportion</b> does converge to 50% (that is the law of large numbers), but the <b>absolute count gap</b> tends to grow (~√n). Stable in ratio, not in difference.')
+        :(lang==='id'?'<b>Intuisi umum, tapi keliru.</b> Geser ke kanan: proporsi memang mendekati 50%, tapi angka selisih merah malah naik. Yang menyatu adalah <i>rasio</i>, bukan selisih absolut.':'<b>Common intuition, but wrong.</b> Slide right: the proportion approaches 50%, yet the red gap number rises. What converges is the <i>ratio</i>, not the absolute difference.');
+      update(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Hukum bilangan besar', en:'Law of large numbers'},
+    sub:{id:'Jacob Bernoulli, 1713', en:'Jacob Bernoulli, 1713'},
+    def:{id:'Seiring jumlah percobaan independen bertambah, rata-rata sampel akan konvergen menuju nilai harapan (rata-rata sejati) populasi.', en:'As the number of independent trials grows, the sample average converges toward the expected value (the true population mean).'},
+    formula:'X̄ₙ = (1/n) Σ Xᵢ  →  <span class="v">μ</span>   (n → ∞)<br>Var(X̄ₙ) = σ² / n  →  0',
+    theory:{id:'Karena ragam rata-rata sampel adalah σ²/n, ia menyusut ke nol saat n membesar — itu sebabnya proporsi "mengunci" di nilai sejati. Namun ini soal rata-rata, bukan jumlah. Simpangan baku dari jumlah total tumbuh seperti √n, sehingga selisih absolut dari nilai harapan justru cenderung membesar walau proporsinya menyatu. Hukum ini juga tidak punya "memori": koin tidak "wajib" menyeimbangkan diri (itu kekeliruan penjudi).', en:'Because the variance of the sample mean is σ²/n, it shrinks to zero as n grows — which is why the proportion "locks in" on the true value. But this is about the average, not the sum. The standard deviation of the total grows like √n, so the absolute deviation from expectation tends to grow even as the proportion converges. The law also has no "memory": a coin is not "due" to balance out (that is the gambler\'s fallacy).'},
+    practice:{id:'Hukum bilangan besar adalah fondasi asuransi, kasino, dan survei: dengan banyak kasus, rata-rata jadi dapat diprediksi meski tiap kasus acak. Tapi hati-hati pada dua jebakan: (1) sampel kecil tidak menikmati jaminan ini — hasilnya bisa liar; (2) konvergensi proporsi bukan berarti "akan ada koreksi" pada hasil individual. Banyak penipuan dan kekeliruan judi lahir dari mencampur kedua hal ini.', en:'The law of large numbers underpins insurance, casinos, and polling: with many cases, averages become predictable even though each case is random. But beware two traps: (1) small samples get no such guarantee — results can be wild; (2) convergence of the proportion does not mean a "correction is coming" for individual outcomes. Many scams and gambling fallacies come from conflating these two.'}
+  }
+});
+
+/* ============================ rendering ============================ */
+var activeCat='__all', activeId=null;
+
+function applyI18n(){
+  document.documentElement.lang=LANG;
+  document.querySelectorAll('[data-i]').forEach(function(el){ el.textContent=t(el.getAttribute('data-i')); });
+  document.querySelectorAll('[data-iph]').forEach(function(el){ el.setAttribute('placeholder', t(el.getAttribute('data-iph'))); });
+  document.getElementById('lang-id').className=(LANG==='id'?'on':'');
+  document.getElementById('lang-en').className=(LANG==='en'?'on':'');
+}
+function cats(){ var set={}; CONCEPTS.forEach(function(c){ set[L(c.cat)]=1; }); return Object.keys(set); }
+function renderChips(){
+  var h='<button class="chip '+(activeCat==='__all'?'on':'')+'" onclick="setCat(\'__all\')">'+t('allcat')+'</button>';
+  cats().forEach(function(c){ h+='<button class="chip '+(activeCat===c?'on':'')+'" onclick="setCat(\''+c.replace(/'/g,"\\'")+'\')">'+c+'</button>'; });
+  document.getElementById('chips').innerHTML=h;
+}
+function renderGrid(){
+  var q=(document.getElementById('q').value||'').toLowerCase();
+  var h='';
+  CONCEPTS.forEach(function(c){
+    if(activeCat!=='__all' && L(c.cat)!==activeCat) return;
+    var hay=(L(c.title)+' '+L(c.tag)+' '+L(c.cat)).toLowerCase();
+    if(q && hay.indexOf(q)<0) return;
+    h+='<button class="tile" onclick="openDetail(\''+c.id+'\')">'+
+      '<div class="ico">'+c.icon+'</div>'+
+      '<div class="cat">'+L(c.cat)+'</div>'+
+      '<h3>'+L(c.title)+'</h3>'+
+      '<p>'+L(c.tag)+'</p></button>';
+  });
+  if(!h) h='<p class="readout" style="grid-column:1/-1;">'+(LANG==='id'?'Tidak ada konsep yang cocok. Coba “Buat dengan AI”.':'No matching concept. Try “Generate with AI”.')+'</p>';
+  document.getElementById('grid').innerHTML=h;
+}
+function setCat(c){ activeCat=c; renderChips(); renderGrid(); }
+function onSearch(){ renderGrid(); }
+
+function renderConceptCard(c){
+  var box=document.getElementById('d-concept');
+  var cc=c.concept;
+  box.innerHTML='<span class="badge">'+t('named')+'</span>'+
+    '<h3>'+L(cc.name)+'</h3>'+(cc.sub?'<div class="sub">'+L(cc.sub)+'</div>':'')+
+    '<div class="sec"><div class="h">'+t('cDef')+'</div><p>'+L(cc.def)+'</p></div>'+
+    '<div class="sec"><div class="h">'+t('cForm')+'</div><div class="formula">'+(cc.formula||'')+'</div></div>'+
+    '<div class="sec"><div class="h">'+t('cTheory')+'</div><p>'+L(cc.theory)+'</p></div>'+
+    '<div class="sec"><div class="h">'+t('cPractice')+'</div><p>'+L(cc.practice)+'</p></div>';
+  box.style.display='block';
+}
+function openDetail(id){
+  var c=CONCEPTS.find(function(x){return x.id===id;}); if(!c) return;
+  activeId=id;
+  document.getElementById('view-list').style.display='none';
+  document.getElementById('view-detail').style.display='block';
+  document.getElementById('d-cat').textContent=L(c.cat);
+  document.getElementById('d-title').textContent=L(c.title);
+  document.getElementById('d-tag').textContent=L(c.tag);
+  document.getElementById('d-concept').style.display='none';
+  document.getElementById('d-concept').innerHTML='';
+  var host=document.getElementById('d-interactive'); host.innerHTML='';
+  c.build(host, LANG, function(){ renderConceptCard(c); });
+  window.scrollTo(0,0);
+}
+function goList(){ activeId=null; document.getElementById('view-detail').style.display='none'; document.getElementById('view-list').style.display='block'; }
+
+function setLang(l){ LANG=l; localStorage.setItem('hs_lang',l); applyI18n(); renderChips(); renderGrid(); if(activeId) openDetail(activeId); }
+
+/* ============================ settings + generate (Claude API) ============================ */
+function openSettings(){ document.getElementById('apikey').value=localStorage.getItem('hs_key')||''; document.getElementById('model').value=localStorage.getItem('hs_model')||'claude-sonnet-4-6'; document.getElementById('settings').style.display='flex'; }
+function closeSettings(){ document.getElementById('settings').style.display='none'; }
+function saveSettings(){ localStorage.setItem('hs_key',document.getElementById('apikey').value.trim()); localStorage.setItem('hs_model',document.getElementById('model').value.trim()||'claude-sonnet-4-6'); closeSettings(); }
+
+async function generate(){
+  var q=(document.getElementById('q').value||'').trim();
+  if(!q){ alert(LANG==='id'?'Ketik nama konsep dulu di kotak pencarian.':'Type a concept name in the search box first.'); return; }
+  var key=localStorage.getItem('hs_key');
+  if(!key){ openSettings(); return; }
+  var model=localStorage.getItem('hs_model')||'claude-sonnet-4-6';
+  // detail view as a loading card
+  activeId=null;
+  document.getElementById('view-list').style.display='none';
+  document.getElementById('view-detail').style.display='block';
+  document.getElementById('d-cat').textContent=LANG==='id'?'Dibuat dengan AI':'AI-generated';
+  document.getElementById('d-title').textContent=q;
+  document.getElementById('d-tag').textContent='';
+  document.getElementById('d-concept').style.display='none';
+  var host=document.getElementById('d-interactive');
+  host.innerHTML='<p class="readout">⏳ '+(LANG==='id'?'Meminta Claude menyusun kartu konsep…':'Asking Claude to compose the concept card…')+'</p>';
+  window.scrollTo(0,0);
+  var langName=LANG==='id'?'Bahasa Indonesia':'English';
+  var prompt='You are a statistics educator for the general public. For the concept "'+q+'", return ONLY valid minified JSON (no markdown) with keys: name, sub (a short attribution or origin, may be empty), def, formula, theory, practice. '+
+    '"formula" may contain simple HTML like <br> and <span class=\\"v\\">…</span> to highlight key symbols. '+
+    'Write def, theory, practice as plain prose in '+langName+'. def = 1-2 sentences. theory = ~3-4 sentences on the underlying reasoning. practice = ~3-4 sentences on real-world use and pitfalls. Keep it accurate and accessible.';
+  try{
+    var res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:model,max_tokens:1200,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){ var er=await res.text(); throw new Error('HTTP '+res.status+' — '+er.slice(0,200)); }
+    var data=await res.json();
+    var txt=(data.content&&data.content[0]&&data.content[0].text)||'';
+    var m=txt.match(/\{[\s\S]*\}/); if(!m) throw new Error('No JSON in response');
+    var obj=JSON.parse(m[0]);
+    host.innerHTML='<p class="readout">'+(LANG==='id'?'Kartu konsep dibuat oleh Claude berdasarkan kata kunci kamu. (Interaktif “tebak/geser” belum tersedia untuk konsep hasil-generate.)':'Concept card generated by Claude from your query. (The interactive “guess/slide” is not available for generated concepts yet.)')+'</p>';
+    var box=document.getElementById('d-concept');
+    box.innerHTML='<span class="badge">✨ '+(LANG==='id'?'Dibuat dengan AI':'AI-generated')+'</span>'+
+      '<h3>'+(obj.name||q)+'</h3>'+(obj.sub?'<div class="sub">'+obj.sub+'</div>':'')+
+      '<div class="sec"><div class="h">'+t('cDef')+'</div><p>'+(obj.def||'')+'</p></div>'+
+      (obj.formula?'<div class="sec"><div class="h">'+t('cForm')+'</div><div class="formula">'+obj.formula+'</div></div>':'')+
+      '<div class="sec"><div class="h">'+t('cTheory')+'</div><p>'+(obj.theory||'')+'</p></div>'+
+      '<div class="sec"><div class="h">'+t('cPractice')+'</div><p>'+(obj.practice||'')+'</p></div>';
+    box.style.display='block';
+  }catch(e){
+    host.innerHTML='<div class="feedback" style="display:block;background:#FEF2F2;border-color:#FECACA;color:#991B1B;"><b>'+(LANG==='id'?'Gagal membuat konsep.':'Generation failed.')+'</b><br>'+String(e.message||e)+'<br><br>'+(LANG==='id'?'Periksa API key di ⚙️, atau model. Catatan: panggilan langsung dari browser butuh akun Anthropic yang mengizinkannya.':'Check your API key in ⚙️, or the model. Note: direct browser calls require an Anthropic account that permits it.')+'</div>';
+  }
+}
+
+/* ============================ init ============================ */
+applyI18n(); renderChips(); renderGrid();
+</script>
+</body>
+</html>
