@@ -1042,6 +1042,705 @@ addConcept({
   }
 });
 
+/* ---------- 14. statistical inference ---------- */
+addConcept({
+  id:'statinf', icon:'🔬', color:'#0284C7',
+  cat:{id:'Inferensi', en:'Inference'},
+  title:{id:'Inferensi statistik', en:'Statistical inference'},
+  tag:{id:'Menebak sifat seluruh populasi hanya dari segenggam sampel — dan tahu seberapa yakin kita boleh.', en:'Guessing a whole population from a handful of samples — and knowing how confident we may be.'},
+  hook:{id:'Untuk menebak rata-rata tinggi 50 juta orang, apakah sampel 30 orang sudah bisa memberi perkiraan yang berguna?', en:'To estimate the mean height of 50 million people, can a sample of 30 already give a useful estimate?'},
+  build:function(host,lang,reveal){
+    var rng=mulberry32(99), g0=gauss(rng), trueM=50, sd=10;
+    function draw(){
+      var n=Math.round(+document.getElementById('si-r').value);
+      var m=trueM+g0*sd/Math.sqrt(n), marg=1.96*sd/Math.sqrt(n);
+      var W=460,H=96,pad=34,lo=35,hi=65, X=function(v){return pad+(v-lo)/(hi-lo)*(W-2*pad);};
+      var y=54;
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<line x1="'+pad+'" y1="'+y+'" x2="'+(W-pad)+'" y2="'+y+'" stroke="#E2E8F0"/>';
+      s+='<line x1="'+X(trueM)+'" y1="22" x2="'+X(trueM)+'" y2="'+(y+14)+'" stroke="#16A34A" stroke-width="2"/>';
+      s+='<text x="'+X(trueM)+'" y="16" text-anchor="middle" font-size="9" fill="#16A34A" font-weight="800">'+(lang==='id'?'sejati 50':'true 50')+'</text>';
+      s+='<line x1="'+X(m-marg).toFixed(1)+'" y1="'+y+'" x2="'+X(m+marg).toFixed(1)+'" y2="'+y+'" stroke="#0284C7" stroke-width="5" opacity="0.5"/>';
+      s+='<circle cx="'+X(m).toFixed(1)+'" cy="'+y+'" r="5" fill="#0284C7"/>';
+      s+='<text x="'+pad+'" y="'+(H-6)+'" font-size="9" fill="#94A3B8">35</text><text x="'+(W-pad)+'" y="'+(H-6)+'" text-anchor="end" font-size="9" fill="#94A3B8">65</text>';
+      s+='</svg>';
+      document.getElementById('si-plot').innerHTML=s;
+      document.getElementById('si-n').textContent=n;
+      document.getElementById('si-est').textContent=m.toFixed(1);
+      document.getElementById('si-marg').textContent='± '+marg.toFixed(1);
+    }
+    window.__si_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="si-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, cukup':'Yes, enough')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Tidak, terlalu sedikit':'No, too few')+'</button>'+
+      '</div>'+
+      '<div id="si-after" style="display:none;margin-top:16px;">'+
+        '<div id="si-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Titik biru = perkiraan dari sampel; garis biru = ketidakpastian (margin 95%).':'Blue dot = estimate from the sample; blue bar = uncertainty (95% margin).')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Ukuran sampel n: ':'Sample size n: ')+'<b id="si-n">30</b></label>'+
+        '<input type="range" id="si-r" min="5" max="500" value="30" step="1" oninput="(window.__si_u&&window.__si_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#EFF6FF;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Perkiraan':'Estimate')+'</div><div class="big" id="si-est" style="font-size:22px;color:#0284C7;"></div></div>'+
+          '<div style="background:#F1F5F9;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Margin (±)':'Margin (±)')+'</div><div class="big" id="si-marg" style="font-size:22px;"></div></div>'+
+        '</div>'+
+        '<div class="feedback" id="si-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#si-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('si-after').style.display='block';
+      document.getElementById('si-fb').innerHTML=(lang==='id'
+        ?'Yang menentukan ketelitian adalah <b>ukuran sampel</b> (n), bukan ukuran populasi. Bahkan n=30 sudah memberi perkiraan berguna; margin menyusut seperti 1/√n, jadi melipatempatkan sampel hanya menyeparuh marginnya. Menebak rata-rata 50 juta orang dan 50 ribu orang butuh sampel yang kira-kira sama besarnya.'
+        :'What determines precision is the <b>sample size</b> (n), not the population size. Even n=30 gives a useful estimate; the margin shrinks like 1/√n, so quadrupling the sample only halves the margin. Estimating the mean of 50 million people and of 50 thousand needs roughly the same sample size.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Inferensi statistik', en:'Statistical inference'}, sub:{id:'Fisher, Neyman, Pearson', en:'Fisher, Neyman, Pearson'},
+    def:{id:'Proses menarik kesimpulan tentang parameter populasi yang tidak diketahui berdasarkan data sampel, sekaligus menyatakan tingkat ketidakpastian dari kesimpulan itu.', en:'The process of drawing conclusions about unknown population parameters from sample data, while quantifying the uncertainty of those conclusions.'},
+    formula:'X̄ ± z* · (σ / √n)   ·   margin ∝ 1/√n   (bukan 1/N)',
+    theory:{id:'Inti inferensi adalah memisahkan sinyal dari derau: estimasi titik memberi tebakan terbaik, sedangkan selang kepercayaan dan uji hipotesis menyatakan seberapa jauh tebakan itu bisa meleset. Ketelitian dikendalikan oleh ragam data dan akar ukuran sampel, bukan oleh besar populasi (selama populasi jauh lebih besar dari sampel). Karena itu jajak pendapat nasional dan kota bisa memakai jumlah responden yang mirip.', en:'The core of inference is separating signal from noise: a point estimate gives the best guess, while confidence intervals and hypothesis tests state how far that guess could be off. Precision is governed by data variance and the square root of sample size, not by population size (as long as the population is far larger than the sample). That is why a national poll and a city poll can use similar respondent counts.'},
+    practice:{id:'Syarat utamanya adalah sampel yang representatif (acak) — tanpa itu, rumus margin yang rapi pun menipu (lihat bias sampling). Laporkan selalu ketidakpastian, bukan hanya angka tunggal, dan bedakan signifikansi statistik dari pentingnya praktis. Inferensi yang baik dimulai dari desain pengumpulan data yang baik, bukan dari analisis yang canggih di belakang.', en:'The key requirement is a representative (random) sample — without it, even a tidy margin formula deceives (see sampling bias). Always report uncertainty, not just a single number, and separate statistical significance from practical importance. Good inference starts with good data-collection design, not clever analysis afterward.'}
+  }
+});
+
+/* ---------- 15. decision tree ---------- */
+addConcept({
+  id:'dtree', icon:'🌳', color:'#15803D',
+  cat:{id:'Model & prediksi', en:'Models & prediction'},
+  title:{id:'Decision tree', en:'Decision tree'},
+  tag:{id:'Serangkaian pertanyaan ya/tidak yang membelah data — tapi pohon yang terlalu dalam justru menghafal, bukan belajar.', en:'A chain of yes/no questions that split the data — but a too-deep tree memorizes instead of learning.'},
+  hook:{id:'Sebuah decision tree memprediksi dengan membelah data berulang kali. Apakah pohon yang lebih dalam (lebih banyak belahan) selalu lebih akurat?', en:'A decision tree predicts by splitting the data over and over. Is a deeper tree (more splits) always more accurate?'},
+  build:function(host,lang,reveal){
+    var trainA=[0,78,87,94,99,100], testA=[0,73,81,83,79,72];
+    function draw(){
+      var d=+document.getElementById('dt-r').value;
+      var W=460,H=150,pad=14, cw=W-2*pad, ch=H-2*pad, nReg=d+1;
+      var rng=mulberry32(5);
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      for(var i=0;i<nReg;i++){var x=pad+i*cw/nReg;s+='<rect x="'+x.toFixed(1)+'" y="'+pad+'" width="'+(cw/nReg).toFixed(1)+'" height="'+ch+'" fill="'+(i%2?'#DCFCE7':'#EFF6FF')+'" stroke="#fff"/>';}
+      for(var p2=0;p2<70;p2++){var px=pad+rng()*cw, py=pad+rng()*ch, reg=Math.floor((px-pad)/(cw/nReg)); var cls=(reg%2); if(rng()<(d>=4?0.02:0.12))cls=1-cls; s+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="2.6" fill="'+(cls?'#15803D':'#2563EB')+'"/>';}
+      s+='</svg>';
+      document.getElementById('dt-plot').innerHTML=s;
+      document.getElementById('dt-d').textContent=d;
+      document.getElementById('dt-tr').textContent=trainA[d]+'%';
+      document.getElementById('dt-te').textContent=testA[d]+'%';
+    }
+    window.__dt_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="dt-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, makin dalam makin baik':'Yes, deeper is better')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Tidak, ada titik baliknya':'No, there is a turning point')+'</button>'+
+      '</div>'+
+      '<div id="dt-after" style="display:none;margin-top:16px;">'+
+        '<div id="dt-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Tiap belahan memotong ruang jadi kotak. Makin dalam → batas makin rumit.':'Each split cuts the space into boxes. Deeper → more complex boundary.')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Kedalaman pohon: ':'Tree depth: ')+'<b id="dt-d">2</b></label>'+
+        '<input type="range" id="dt-r" min="1" max="5" value="2" step="1" oninput="(window.__dt_u&&window.__dt_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#EFF6FF;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Akurasi data latih':'Train accuracy')+'</div><div class="big" id="dt-tr" style="font-size:20px;color:#2563EB;"></div></div>'+
+          '<div style="background:#ECFDF5;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Akurasi data baru':'Test accuracy')+'</div><div class="big" id="dt-te" style="font-size:20px;color:#16A34A;"></div></div>'+
+        '</div>'+
+        '<div class="feedback" id="dt-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#dt-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('dt-after').style.display='block';
+      document.getElementById('dt-fb').innerHTML=(lang==='id'
+        ?'Geser kedalaman: akurasi data <b>latih</b> terus naik sampai 100% (pohon hafal semua), tapi akurasi data <b>baru</b> memuncak di kedalaman ~3 lalu turun. Itulah <b>overfitting</b> — pohon mulai menghafal derau, bukan pola. Pohon dangkal mudah ditafsirkan tapi bisa terlalu sederhana; pohon dalam fleksibel tapi rapuh.'
+        :'Slide the depth: <b>train</b> accuracy keeps rising to 100% (the tree memorizes everything), but accuracy on <b>new</b> data peaks around depth ~3 then falls. That is <b>overfitting</b> — the tree starts memorizing noise, not patterns. Shallow trees are interpretable but may be too simple; deep trees are flexible but brittle.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Decision tree (pohon keputusan)', en:'Decision tree'}, sub:{id:'Breiman dkk., 1984 (CART)', en:'Breiman et al., 1984 (CART)'},
+    def:{id:'Model prediksi yang membuat keputusan lewat serangkaian pertanyaan bercabang pada fitur data, membelah data menjadi kelompok yang makin homogen hingga mencapai sebuah prediksi di daun pohon.', en:'A predictive model that makes decisions through a branching series of questions on data features, splitting the data into increasingly homogeneous groups until reaching a prediction at a leaf.'},
+    formula:'pilih belahan yang paling memurnikan kelompok<br>(min impuritas: Gini / entropi)',
+    theory:{id:'Pada tiap simpul, algoritme memilih fitur dan ambang yang paling “memurnikan” kelompok (mengurangi keberagaman kelas), lalu mengulanginya secara rekursif. Kelebihannya: mudah ditafsirkan dan menangkap interaksi non-linier tanpa banyak asumsi. Kelemahan utamanya: variansnya tinggi — pohon yang dibiarkan tumbuh dalam akan menghafal data latih (overfit), sehingga butuh pemangkasan (pruning) atau batas kedalaman.', en:'At each node, the algorithm picks the feature and threshold that best “purifies” the groups (reducing class mixing), then repeats recursively. Strengths: easy to interpret and captures non-linear interactions without many assumptions. Main weakness: high variance — a tree allowed to grow deep will memorize the training data (overfit), so it needs pruning or a depth limit.'},
+    practice:{id:'Pohon keputusan dipakai untuk skor kredit, triase medis, dan aturan bisnis karena hasilnya bisa dijelaskan sebagai “jika–maka”. Tapi satu pohon jarang dipakai sendirian dalam prediksi serius justru karena rawan overfit dan tidak stabil (perubahan kecil pada data mengubah seluruh struktur). Solusi umumnya menggabungkan banyak pohon — itulah random forest.', en:'Decision trees are used for credit scoring, medical triage, and business rules because the output can be explained as “if–then”. But a single tree is rarely used alone for serious prediction precisely because it overfits and is unstable (small data changes reshape the whole tree). The common fix is to combine many trees — that is random forest.'}
+  }
+});
+
+/* ---------- 16. random forest ---------- */
+addConcept({
+  id:'rforest', icon:'🌲', color:'#166534',
+  cat:{id:'Model & prediksi', en:'Models & prediction'},
+  title:{id:'Random forest', en:'Random forest'},
+  tag:{id:'Satu pohon labil. Tapi ratusan pohon biasa yang memilih bersama menghasilkan prediksi yang jauh lebih stabil.', en:'One tree is shaky. But hundreds of ordinary trees voting together give a far steadier prediction.'},
+  hook:{id:'Mana yang lebih andal: satu decision tree yang dioptimalkan habis-habisan, atau rata-rata dari banyak pohon yang masing-masing biasa saja?', en:'Which is more reliable: one heavily-optimized decision tree, or the average of many individually-mediocre trees?'},
+  build:function(host,lang,reveal){
+    function draw(){
+      var nt=Math.round(+document.getElementById('rf-r').value);
+      var W=460,H=170,pad=20, amp=26/Math.sqrt(nt);
+      var X=function(t){return pad+t/40*(W-2*pad);}, Y=function(v){return H/2-v;};
+      function truef(t){return 34*Math.sin(t/40*Math.PI*1.4);}
+      var rng=mulberry32(3);
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      var tc='';for(var t=0;t<=40;t++){tc+=(t?'L':'M')+X(t).toFixed(1)+' '+Y(truef(t)).toFixed(1)+' ';}
+      s+='<path d="'+tc+'" fill="none" stroke="#CBD5E1" stroke-width="3"/>';
+      var pc='';for(var t2=0;t2<=40;t2++){var noise=(rng()-0.5)*2*amp*3;pc+=(t2?'L':'M')+X(t2).toFixed(1)+' '+Y(truef(t2)+noise).toFixed(1)+' ';}
+      s+='<path d="'+pc+'" fill="none" stroke="#166534" stroke-width="2"/>';
+      s+='</svg>';
+      document.getElementById('rf-plot').innerHTML=s;
+      document.getElementById('rf-nt').textContent=nt;
+      document.getElementById('rf-acc').textContent=(88-12/Math.sqrt(nt)).toFixed(1)+'%';
+      document.getElementById('rf-var').textContent=(100/Math.sqrt(nt)).toFixed(0);
+    }
+    window.__rf_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="rf-guess">'+
+        '<button class="btn" data-v="one">'+(lang==='id'?'Satu pohon hebat':'One great tree')+'</button>'+
+        '<button class="btn" data-v="many">'+(lang==='id'?'Banyak pohon biasa':'Many ordinary trees')+'</button>'+
+      '</div>'+
+      '<div id="rf-after" style="display:none;margin-top:16px;">'+
+        '<div id="rf-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Abu-abu = pola sejati; hijau = prediksi gabungan. Makin banyak pohon → makin mulus mengikuti pola.':'Gray = true pattern; green = combined prediction. More trees → smoother tracking of the pattern.')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Jumlah pohon: ':'Number of trees: ')+'<b id="rf-nt">1</b></label>'+
+        '<input type="range" id="rf-r" min="1" max="200" value="1" step="1" oninput="(window.__rf_u&&window.__rf_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#ECFDF5;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Akurasi':'Accuracy')+'</div><div class="big" id="rf-acc" style="font-size:20px;color:#166534;"></div></div>'+
+          '<div style="background:#F1F5F9;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Variansi prediksi':'Prediction variance')+'</div><div class="big" id="rf-var" style="font-size:20px;"></div></div>'+
+        '</div>'+
+        '<div class="feedback" id="rf-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#rf-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('rf-after').style.display='block';
+      document.getElementById('rf-fb').innerHTML=(lang==='id'
+        ?'Geser jumlah pohon: prediksi gabungan makin mulus dan stabil, variansinya turun seperti 1/√(jumlah pohon). Tiap pohon dilatih pada sampel acak dan fitur acak, jadi kesalahan mereka tidak kompak — saat dirata-rata, derau saling meniadakan sementara sinyal bertahan. “Kebijaksanaan orang banyak” untuk model.'
+        :'Slide the number of trees: the combined prediction grows smoother and steadier, its variance falling like 1/√(number of trees). Each tree trains on a random sample and random features, so their errors are not aligned — when averaged, noise cancels out while signal survives. The “wisdom of crowds” for models.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Random forest', en:'Random forest'}, sub:{id:'Leo Breiman, 2001', en:'Leo Breiman, 2001'},
+    def:{id:'Model ensembel yang membangun banyak decision tree pada sampel data dan subset fitur yang diacak, lalu menggabungkan prediksinya (suara terbanyak atau rata-rata) untuk mengurangi varians dan overfitting.', en:'An ensemble model that builds many decision trees on randomized data samples and feature subsets, then combines their predictions (majority vote or average) to reduce variance and overfitting.'},
+    formula:'prediksi = rata-rata / suara dari B pohon<br>Var(rata-rata) ↓ saat pohon-pohon kurang berkorelasi',
+    theory:{id:'Idenya adalah bagging: melatih tiap pohon pada sampel bootstrap berbeda dan hanya mengizinkan subset fitur acak di tiap belahan. Pengacakan ganda ini membuat pohon-pohon kurang berkorelasi, sehingga ketika dirata-rata, varians turun drastis tanpa menambah bias berarti. Hasilnya: model yang mempertahankan fleksibilitas pohon tetapi jauh lebih stabil dan tahan overfitting.', en:'The idea is bagging: train each tree on a different bootstrap sample and allow only a random subset of features at each split. This double randomization makes the trees less correlated, so averaging them slashes variance without adding much bias. The result: a model that keeps the flexibility of trees but is far more stable and resistant to overfitting.'},
+    practice:{id:'Random forest adalah pilihan andalan untuk data tabular: kuat, sedikit penyetelan, dan memberi peringkat pentingnya fitur. Harganya adalah hilangnya keterbacaan satu pohon — kita menukar interpretasi mudah dengan akurasi dan kestabilan. Untuk kasus yang menuntut penjelasan per keputusan, padukan dengan alat seperti SHAP, atau pertimbangkan model yang lebih sederhana.', en:'Random forest is a go-to for tabular data: robust, low-tuning, and it ranks feature importance. The cost is losing a single tree’s readability — you trade easy interpretation for accuracy and stability. For cases needing per-decision explanations, pair it with tools like SHAP, or consider a simpler model.'}
+  }
+});
+
+/* ---------- 17. novelty effect ---------- */
+addConcept({
+  id:'novelty', icon:'✨', color:'#CA8A04',
+  cat:{id:'Eksperimen', en:'Experiments'},
+  title:{id:'Novelty effect', en:'Novelty effect'},
+  tag:{id:'Fitur baru sering melonjak di awal hanya karena “baru”, lalu meluruh — berhenti mengukur terlalu cepat menipu.', en:'A new feature often spikes early just because it is new, then decays — measuring too early deceives.'},
+  hook:{id:'Fitur baru menaikkan keterlibatan +40% di minggu pertama. Apakah kenaikan sebesar itu akan bertahan?', en:'A new feature lifts engagement +40% in week one. Will a lift that large hold up?'},
+  build:function(host,lang,reveal){
+    var rng=mulberry32(8), base=100;
+    var ctrl=[], trt=[]; for(var d=0;d<60;d++){ctrl.push(base+(rng()-0.5)*6); trt.push(base+40*Math.exp(-d/9)+(rng()-0.5)*6);}
+    function draw(){
+      var win=Math.round(+document.getElementById('nv-r').value);
+      var W=460,H=180,pad=28, X=function(t){return pad+t/59*(W-2*pad);}, lo=85,hi=148, Y=function(v){return H-pad-(v-lo)/(hi-lo)*(H-2*pad);};
+      function path(arr){var s='';for(var t=0;t<60;t++){s+=(t?'L':'M')+X(t).toFixed(1)+' '+Y(arr[t]).toFixed(1)+' ';}return s;}
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<rect x="'+pad+'" y="'+pad+'" width="'+(X(win)-pad).toFixed(1)+'" height="'+(H-2*pad)+'" fill="#FEF9C3" opacity="0.6"/>';
+      s+='<path d="'+path(ctrl)+'" fill="none" stroke="#94A3B8" stroke-width="2"/>';
+      s+='<path d="'+path(trt)+'" fill="none" stroke="#CA8A04" stroke-width="2.4"/>';
+      s+='<text x="'+(W-pad)+'" y="'+(H-8)+'" text-anchor="end" font-size="9" fill="#94A3B8">'+(lang==='id'?'hari ke-60':'day 60')+'</text>';
+      s+='</svg>';
+      document.getElementById('nv-plot').innerHTML=s;
+      var lift=0;for(var i=0;i<win;i++){lift+=(trt[i]-ctrl[i]);}lift=lift/win;
+      document.getElementById('nv-win').textContent=win;
+      document.getElementById('nv-lift').textContent='+'+lift.toFixed(0)+'%';
+    }
+    window.__nv_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="nv-guess">'+
+        '<button class="btn" data-v="hold">'+(lang==='id'?'Ya, bertahan':'Yes, it holds')+'</button>'+
+        '<button class="btn" data-v="fade">'+(lang==='id'?'Tidak, akan meluruh':'No, it will fade')+'</button>'+
+      '</div>'+
+      '<div id="nv-after" style="display:none;margin-top:16px;">'+
+        '<div id="nv-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Kuning = jendela pengukuran. Geser untuk memperpanjang eksperimen.':'Yellow = measurement window. Slide to run the experiment longer.')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Lama eksperimen (hari): ':'Experiment length (days): ')+'<b id="nv-win">7</b></label>'+
+        '<input type="range" id="nv-r" min="3" max="60" value="7" step="1" oninput="(window.__nv_u&&window.__nv_u())"/>'+
+        '<p class="big" id="nv-liftwrap" style="font-size:20px;margin-top:8px;">'+(lang==='id'?'Rata-rata kenaikan terukur: ':'Measured average lift: ')+'<span id="nv-lift" style="color:#CA8A04;"></span></p>'+
+        '<div class="feedback" id="nv-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#nv-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('nv-after').style.display='block';
+      document.getElementById('nv-fb').innerHTML=(lang==='id'
+        ?'Geser lama eksperimen ke kanan: kenaikan terukur jatuh dari +40% ke hampir nol. Lonjakan awal sebagian besar karena rasa penasaran terhadap hal baru, bukan nilai jangka panjang. Menghentikan A/B test terlalu cepat akan sangat melebih-lebihkan dampak. Jalankan cukup lama sampai efek kebaruan mereda.'
+        :'Slide the experiment length right: the measured lift falls from +40% toward near zero. The early spike is mostly curiosity about the new thing, not lasting value. Stopping an A/B test too early massively overstates the impact. Run it long enough for the novelty to wear off.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Novelty effect', en:'Novelty effect'}, sub:{id:'psikologi & eksperimen produk', en:'psychology & product experiments'},
+    def:{id:'Kecenderungan pengguna merespons lebih kuat terhadap sesuatu hanya karena baru, menghasilkan lonjakan sementara pada metrik yang meluruh kembali ke garis dasar seiring kebaruan memudar.', en:'The tendency for users to respond more strongly to something simply because it is new, producing a temporary spike in metrics that decays back toward baseline as the novelty fades.'},
+    formula:'efek(t) ≈ efek_jangka_panjang + lonjakan · e^(−t/τ)',
+    theory:{id:'Respons awal mencampur dua komponen: nilai sejati fitur dan dorongan rasa ingin tahu yang fana. Karena komponen kebaruan meluruh (sering secara eksponensial), estimasi yang diambil dari jendela waktu pendek bias ke atas. Cerminannya adalah change aversion, ketika perubahan justru menekan metrik sementara sebelum pulih. Keduanya membuat efek jangka pendek menyesatkan.', en:'The initial response mixes two components: the feature’s true value and a fleeting curiosity boost. Because the novelty component decays (often exponentially), an estimate taken from a short window is biased upward. Its mirror image is change aversion, where a change temporarily depresses metrics before recovering. Both make short-term effects misleading.'},
+    practice:{id:'Jalankan eksperimen cukup lama hingga kurva mendatar, dan periksa khusus pengguna baru vs lama (efek kebaruan paling kuat pada pengguna lama yang terbiasa). Pertimbangkan periode “burn-in” sebelum mulai mengukur. Pelajaran umumnya: waspadai metrik yang indah di minggu pertama peluncuran apa pun.', en:'Run experiments long enough for the curve to flatten, and check new vs existing users separately (the novelty effect is strongest for long-time users used to the old way). Consider a “burn-in” period before you start measuring. The general lesson: be wary of beautiful first-week metrics on any launch.'}
+  }
+});
+
+/* ---------- 18. experimentation ---------- */
+addConcept({
+  id:'experiment', icon:'🎛️', color:'#0D9488',
+  cat:{id:'Eksperimen', en:'Experiments'},
+  title:{id:'Eksperimentasi & pengacakan', en:'Experimentation & randomization'},
+  tag:{id:'Membiarkan orang memilih sendiri perlakuan akan menipu. Pengacakan adalah cara paling bersih membuktikan sebab.', en:'Letting people choose their own treatment deceives. Randomization is the cleanest way to prove cause.'},
+  hook:{id:'Orang yang rutin berolahraga ternyata lebih sehat. Berarti olahraga yang membuat mereka sehat?', en:'People who exercise regularly turn out healthier. Does that mean exercise made them healthy?'},
+  build:function(host,lang,reveal){
+    var trueEff=2;
+    function render(){
+      var mode=document.getElementById('xp-mode').value;
+      var obs= mode==='self' ? 9 : trueEff;
+      var note= mode==='self'
+        ? (lang==='id'?'Relawan yang memilih olahraga umumnya sudah lebih muda, kaya, dan sehat sejak awal. Efek terukur +9 menggelembung oleh perbedaan itu.':'Volunteers who choose to exercise are often already younger, richer, and healthier. The measured +9 is inflated by those differences.')
+        : (lang==='id'?'Dengan menugaskan olahraga secara acak, kedua kelompok rata-rata setara di segala hal lain. Sisa perbedaan +2 benar-benar disebabkan olahraga.':'By assigning exercise at random, the two groups are equal on average in everything else. The remaining +2 is genuinely caused by exercise.');
+      document.getElementById('xp-obs').textContent='+'+obs;
+      document.getElementById('xp-true').textContent='+'+trueEff;
+      document.getElementById('xp-note').textContent=note;
+      var bw=Math.min(100, obs/9*100);
+      document.getElementById('xp-bar').style.width=bw+'%';
+      document.getElementById('xp-bar').style.background= mode==='self' ? '#EF4444' : '#0D9488';
+    }
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="xp-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, terbukti':'Yes, proven')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Belum tentu':'Not necessarily')+'</button>'+
+      '</div>'+
+      '<div id="xp-after" style="display:none;margin-top:16px;">'+
+        '<div class="btn-row" style="margin-bottom:14px;">'+
+          '<button class="btn primary" id="xp-self">'+(lang==='id'?'Relawan pilih sendiri':'Volunteers self-select')+'</button>'+
+          '<button class="btn" id="xp-rand">'+(lang==='id'?'Ditugaskan acak':'Randomly assigned')+'</button>'+
+        '</div>'+
+        '<select id="xp-mode" style="display:none;">'+'<option value="self">self</option><option value="rand">rand</option>'+'</select>'+
+        '<div style="background:#F1F5F9;border-radius:10px;padding:14px;">'+
+          '<div class="readout">'+(lang==='id'?'Efek terukur (olahraga → skor sehat)':'Measured effect (exercise → health score)')+'</div>'+
+          '<div style="background:#E2E8F0;border-radius:6px;height:16px;margin:8px 0;"><div id="xp-bar" style="height:16px;border-radius:6px;width:100%;background:#EF4444;"></div></div>'+
+          '<div style="display:flex;justify-content:space-between;"><span class="big" id="xp-obs" style="font-size:22px;"></span><span class="readout">'+(lang==='id'?'efek sejati ':'true effect ')+'<b id="xp-true"></b></span></div>'+
+        '</div>'+
+        '<p class="readout" id="xp-note" style="margin-top:10px;"></p>'+
+        '<div class="feedback" id="xp-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#xp-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('xp-after').style.display='block';
+      document.getElementById('xp-fb').innerHTML=(lang==='id'
+        ?'Klik kedua tombol dan bandingkan. Saat relawan memilih sendiri, efek terukur menggelembung jadi +9 karena yang memilih olahraga sudah sehat sejak awal (perancu). Pengacakan menyeimbangkan semua perancu — terlihat maupun tak terlihat — sehingga efek tersisa +2 benar-benar kausal. Itulah kekuatan unik eksperimen acak (RCT).'
+        :'Click both buttons and compare. When volunteers self-select, the measured effect inflates to +9 because exercisers were already healthier (a confounder). Randomization balances all confounders — seen and unseen — so the remaining +2 is truly causal. That is the unique power of a randomized experiment (RCT).');
+      render(); reveal();
+    };});
+    setTimeout(function(){
+      var sf=document.getElementById('xp-self'), rd=document.getElementById('xp-rand'), md=document.getElementById('xp-mode');
+      if(sf) sf.onclick=function(){md.value='self';sf.className='btn primary';rd.className='btn';render();};
+      if(rd) rd.onclick=function(){md.value='rand';rd.className='btn primary';sf.className='btn';render();};
+    },0);
+  },
+  concept:{
+    name:{id:'Eksperimentasi & pengacakan', en:'Experimentation & randomization'}, sub:{id:'R. A. Fisher, 1925', en:'R. A. Fisher, 1925'},
+    def:{id:'Metode menetapkan sebab dengan menugaskan perlakuan secara acak kepada subjek, sehingga perbedaan hasil antar kelompok dapat dikaitkan ke perlakuan, bukan ke perbedaan yang sudah ada sebelumnya.', en:'A method for establishing cause by assigning treatments to subjects at random, so that differences in outcomes between groups can be attributed to the treatment rather than to pre-existing differences.'},
+    formula:'pengacakan ⇒ E[perancu | perlakuan] sama di semua kelompok<br>⇒ selisih hasil = efek kausal',
+    theory:{id:'Pada data observasi, perlakuan dan hasil sama-sama dipengaruhi perancu, sehingga korelasi bukan sebab. Pengacakan memutus tautan itu: karena penugasan tidak bergantung pada sifat subjek, kedua kelompok setara secara rata-rata pada segala hal lain — termasuk perancu yang bahkan tidak kita ketahui. Inilah mengapa uji acak terkontrol dianggap standar emas bukti kausal.', en:'In observational data, both treatment and outcome are influenced by confounders, so correlation is not cause. Randomization severs that link: because assignment does not depend on subjects’ traits, the two groups are equal on average in everything else — including confounders we do not even know about. This is why randomized controlled trials are considered the gold standard of causal evidence.'},
+    practice:{id:'A/B testing adalah pengacakan yang diterapkan di produk digital. Bila pengacakan tidak mungkin atau tidak etis (mis. memaksa orang merokok), gunakan desain kuasi-eksperimen atau metode inferensi kausal observasional. Jaga validitas: hindari kebocoran antar kelompok, efek kebaruan, dan menghentikan eksperimen terlalu dini berdasarkan hasil yang menggoda.', en:'A/B testing is randomization applied to digital products. When randomization is impossible or unethical (e.g. forcing people to smoke), use quasi-experimental designs or observational causal-inference methods. Protect validity: avoid leakage between groups, novelty effects, and stopping the experiment early on tempting results.'}
+  }
+});
+
+/* ---------- 19. stationarity ---------- */
+addConcept({
+  id:'station', icon:'🌊', color:'#0369A1',
+  cat:{id:'Deret waktu', en:'Time series'},
+  title:{id:'Stasioneritas', en:'Stationarity'},
+  tag:{id:'Kebanyakan model deret waktu menuntut “aturan main yang tetap”. Tren naik diam-diam melanggarnya.', en:'Most time-series models demand the “rules stay constant”. An upward trend quietly breaks that.'},
+  hook:{id:'Sebuah deret waktu naik terus (ada tren). Bisakah model peramalan standar langsung dipakai pada deret seperti ini?', en:'A time series keeps trending upward. Can a standard forecasting model be applied directly to a series like this?'},
+  build:function(host,lang,reveal){
+    var rng=mulberry32(21), noise=[]; for(var i=0;i<80;i++) noise.push(gauss(rng)*5);
+    function draw(){
+      var tr=+document.getElementById('st-tr').value, se=+document.getElementById('st-se').value;
+      var ser=[]; for(var t=0;t<80;t++){ser.push(60+tr*t*0.5+se*14*Math.sin(t/6)+noise[t]);}
+      var W=460,H=180,pad=26, lo=Math.min.apply(null,ser)-5, hi=Math.max.apply(null,ser)+5;
+      var X=function(t){return pad+t/79*(W-2*pad);}, Y=function(v){return H-pad-(v-lo)/(hi-lo)*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      var sp='';for(var t2=0;t2<80;t2++){sp+=(t2?'L':'M')+X(t2).toFixed(1)+' '+Y(ser[t2]).toFixed(1)+' ';}
+      s+='<path d="'+sp+'" fill="none" stroke="#0369A1" stroke-width="1.8"/>';
+      var rm='';for(var t3=0;t3<80;t3++){var a=Math.max(0,t3-6),sum=0,c=0;for(var k=a;k<=t3;k++){sum+=ser[k];c++;}rm+=(t3?'L':'M')+X(t3).toFixed(1)+' '+Y(sum/c).toFixed(1)+' ';}
+      s+='<path d="'+rm+'" fill="none" stroke="#EF4444" stroke-width="2" stroke-dasharray="4,3"/>';
+      s+='</svg>';
+      document.getElementById('st-plot').innerHTML=s;
+      var stat=(tr<0.15 && se<0.2);
+      var el=document.getElementById('st-stat');
+      el.textContent= stat ? (lang==='id'?'Stasioner ✓':'Stationary ✓') : (lang==='id'?'Tidak stasioner ✗':'Non-stationary ✗');
+      el.style.color= stat ? '#16A34A':'#EF4444';
+    }
+    window.__st_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="st-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, langsung bisa':'Yes, directly')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Tidak, harus diolah dulu':'No, transform first')+'</button>'+
+      '</div>'+
+      '<div id="st-after" style="display:none;margin-top:16px;">'+
+        '<div id="st-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Garis merah = rata-rata bergerak. Kalau ia menanjak/berayun, mean berubah → tidak stasioner.':'Red line = rolling mean. If it drifts or swings, the mean changes → non-stationary.')+'</p>'+
+        '<label class="fld">'+(lang==='id'?'Kekuatan tren':'Trend strength')+'</label>'+
+        '<input type="range" id="st-tr" min="0" max="1" value="0.6" step="0.05" oninput="(window.__st_u&&window.__st_u())"/>'+
+        '<label class="fld" style="display:block;margin-top:4px;">'+(lang==='id'?'Kekuatan musiman':'Seasonality strength')+'</label>'+
+        '<input type="range" id="st-se" min="0" max="1" value="0.3" step="0.05" oninput="(window.__st_u&&window.__st_u())"/>'+
+        '<p class="big" id="st-statwrap" style="font-size:20px;margin-top:8px;">'+(lang==='id'?'Status: ':'Status: ')+'<span id="st-stat"></span></p>'+
+        '<div class="feedback" id="st-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#st-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('st-after').style.display='block';
+      document.getElementById('st-fb').innerHTML=(lang==='id'
+        ?'Turunkan kedua slider ke nol: rata-rata bergerak (merah) mendatar → deret stasioner, sifatnya tetap sepanjang waktu, dan model seperti ARIMA bisa dipakai. Naikkan tren atau musiman: mean berubah seiring waktu → tidak stasioner. Solusinya: hilangkan tren (differencing) atau buang pola musiman dulu sebelum memodelkan.'
+        :'Drop both sliders to zero: the rolling mean (red) flattens → the series is stationary, its properties constant over time, and models like ARIMA can be used. Raise trend or seasonality: the mean changes over time → non-stationary. The fix: remove the trend (differencing) or strip the seasonal pattern before modeling.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Stasioneritas', en:'Stationarity'}, sub:{id:'fondasi analisis deret waktu', en:'foundation of time-series analysis'},
+    def:{id:'Sifat sebuah deret waktu yang sifat statistiknya — rata-rata, ragam, dan struktur autokorelasi — tidak berubah sepanjang waktu.', en:'The property of a time series whose statistical characteristics — mean, variance, and autocorrelation structure — do not change over time.'},
+    formula:'mean, ragam, autokovariansi konstan terhadap waktu<br>(tidak bergantung pada t)',
+    theory:{id:'Banyak metode peramalan klasik (AR, MA, ARIMA) mengasumsikan masa depan mengikuti “aturan main” yang sama dengan masa lalu — itulah stasioneritas. Tren membuat mean bergeser, sedangkan musiman dan ragam yang membesar juga melanggar asumsi ini. Akibatnya, korelasi pada data non-stasioner bisa palsu (spurious): dua deret yang sama-sama menanjak akan tampak berkorelasi padahal tak berhubungan.', en:'Many classical forecasting methods (AR, MA, ARIMA) assume the future follows the same “rules” as the past — that is stationarity. A trend shifts the mean, while seasonality and growing variance also violate the assumption. As a result, correlations on non-stationary data can be spurious: two series that both trend upward will appear correlated even if unrelated.'},
+    practice:{id:'Sebelum memodelkan deret waktu, periksa stasioneritas (plot, rata-rata bergerak, atau uji seperti ADF). Bila tidak stasioner, ubah dulu: differencing untuk menghapus tren, transformasi log untuk menstabilkan ragam, atau penyesuaian musiman. Mengabaikan langkah ini adalah sumber umum peramalan dan regresi yang menyesatkan.', en:'Before modeling a time series, check stationarity (plots, rolling means, or tests like ADF). If it is non-stationary, transform first: differencing to remove trend, a log transform to stabilize variance, or seasonal adjustment. Skipping this step is a common source of misleading forecasts and regressions.'}
+  }
+});
+
+/* ---------- 20. moving average ---------- */
+addConcept({
+  id:'movavg', icon:'📉', color:'#2563EB',
+  cat:{id:'Deret waktu', en:'Time series'},
+  title:{id:'Moving average', en:'Moving average'},
+  tag:{id:'Merata-rata jendela waktu meredam derau — tapi jendela terlalu lebar bikin garis telat dan tumpul.', en:'Averaging a time window smooths noise — but too wide a window makes the line late and dull.'},
+  hook:{id:'Untuk menghaluskan data yang berisik, apakah jendela rata-rata yang makin lebar selalu makin baik?', en:'To smooth noisy data, is a wider averaging window always better?'},
+  build:function(host,lang,reveal){
+    var rng=mulberry32(31), N=60, sig=[], noisy=[];
+    for(var t=0;t<N;t++){var base=60+30*Math.exp(-Math.pow((t-30)/12,2))*1; sig.push(60+34*Math.exp(-Math.pow((t-28)/10,2))); noisy.push(sig[t]+gauss(rng)*7);}
+    function ma(w){var out=[];for(var t=0;t<N;t++){var a=Math.max(0,t-w+1),s=0,c=0;for(var k=a;k<=t;k++){s+=noisy[k];c++;}out.push(s/c);}return out;}
+    function draw(){
+      var w=+document.getElementById('mv-r').value, sm=ma(w);
+      var W=460,H=190,pad=26,lo=45,hi=100,X=function(t){return pad+t/(N-1)*(W-2*pad);},Y=function(v){return H-pad-(v-lo)/(hi-lo)*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      var np='';for(var t=0;t<N;t++){np+=(t?'L':'M')+X(t).toFixed(1)+' '+Y(noisy[t]).toFixed(1)+' ';}
+      s+='<path d="'+np+'" fill="none" stroke="#CBD5E1" stroke-width="1.4"/>';
+      var sp='';for(var t2=0;t2<N;t2++){sp+=(t2?'L':'M')+X(t2).toFixed(1)+' '+Y(sm[t2]).toFixed(1)+' ';}
+      s+='<path d="'+sp+'" fill="none" stroke="#2563EB" stroke-width="2.6"/>';
+      s+='</svg>';
+      document.getElementById('mv-plot').innerHTML=s;
+      document.getElementById('mv-w').textContent=w;
+    }
+    window.__mv_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="mv-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, makin lebar makin halus':'Yes, wider is smoother')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Ada harga yang dibayar':'There is a price to pay')+'</button>'+
+      '</div>'+
+      '<div id="mv-after" style="display:none;margin-top:16px;">'+
+        '<div id="mv-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Abu-abu = data asli berisik; biru = rata-rata bergerak.':'Gray = raw noisy data; blue = moving average.')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Lebar jendela: ':'Window size: ')+'<b id="mv-w">3</b></label>'+
+        '<input type="range" id="mv-r" min="1" max="25" value="3" step="1" oninput="(window.__mv_u&&window.__mv_u())"/>'+
+        '<div class="feedback" id="mv-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#mv-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('mv-after').style.display='block';
+      document.getElementById('mv-fb').innerHTML=(lang==='id'
+        ?'Lebarkan jendela: garis biru memang makin halus, tapi puncaknya bergeser ke kanan (telat/lag) dan makin rendah — detail penting jadi tumpul. Ada trade-off antara meredam derau dan mempertahankan ketajaman sinyal. Jendela sempit responsif tapi berisik; jendela lebar mulus tapi lamban bereaksi terhadap perubahan.'
+        :'Widen the window: the blue line gets smoother, but its peak shifts right (lag) and flattens — important detail is dulled. There is a trade-off between suppressing noise and preserving signal sharpness. A narrow window is responsive but noisy; a wide window is smooth but slow to react to change.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Moving average (rata-rata bergerak)', en:'Moving average'}, sub:{id:'penghalusan deret waktu', en:'time-series smoothing'},
+    def:{id:'Teknik menghaluskan deret waktu dengan mengganti tiap titik dengan rata-rata dari beberapa titik di sekitarnya (jendela), guna meredam fluktuasi jangka pendek dan menonjolkan tren.', en:'A technique for smoothing a time series by replacing each point with the average of several nearby points (a window), to dampen short-term fluctuations and highlight the trend.'},
+    formula:'MAₜ = (1/w) · Σ xₜ₋ᵢ ,  i = 0 … w−1',
+    theory:{id:'Merata-rata menjumlahkan kesalahan acak yang sebagian saling meniadakan, sehingga derau berkurang seperti 1/√w. Namun ada ongkosnya: rata-rata bergerak sederhana memberi bobot sama pada masa lalu, sehingga tertinggal di belakang perubahan nyata (lag) dan menumpulkan puncak. Memperlebar jendela menukar lebih sedikit derau dengan lebih banyak keterlambatan dan bias.', en:'Averaging sums random errors that partly cancel, so noise drops like 1/√w. But there is a cost: a simple moving average weights the past equally, so it lags behind real changes and blunts peaks. Widening the window trades less noise for more lag and bias.'},
+    practice:{id:'Rata-rata bergerak ada di mana-mana: harga saham (MA 50/200 hari), kasus harian wabah, dan dasbor metrik. Pilih lebar jendela sesuai tujuan: pendek untuk mendeteksi perubahan cepat, panjang untuk melihat tren besar. Varian berbobot seperti exponential moving average memberi bobot lebih pada data terbaru untuk mengurangi lag.', en:'Moving averages are everywhere: stock prices (50/200-day MA), daily epidemic cases, and metric dashboards. Choose the window for your goal: short to catch fast changes, long to see the big trend. Weighted variants like the exponential moving average put more weight on recent data to reduce lag.'}
+  }
+});
+
+/* ---------- 21. autoregressive ---------- */
+addConcept({
+  id:'ar', icon:'🔁', color:'#7C3AED',
+  cat:{id:'Deret waktu', en:'Time series'},
+  title:{id:'Model autoregresif (AR)', en:'Autoregressive (AR) model'},
+  tag:{id:'Memprediksi masa depan dari masa lalunya sendiri — dan satu angka (φ) menentukan apakah deret tenang, persisten, atau meledak.', en:'Predicting the future from its own past — and one number (φ) decides whether the series is calm, persistent, or explosive.'},
+  hook:{id:'Pada model x(t) = φ · x(t−1) + derau, kalau φ mendekati 1, deretnya akan cenderung…?', en:'In the model x(t) = φ · x(t−1) + noise, when φ approaches 1, the series will tend to…?'},
+  build:function(host,lang,reveal){
+    var rng=mulberry32(44), eps=[]; for(var i=0;i<120;i++) eps.push(gauss(rng)*4);
+    function draw(){
+      var phi=+document.getElementById('ar-r').value, x=[0];
+      for(var t=1;t<120;t++){var v=phi*x[t-1]+eps[t]; x.push(Math.max(-80,Math.min(80,v)));}
+      var W=460,H=190,pad=24,lo=-60,hi=60,X=function(t){return pad+t/119*(W-2*pad);},Y=function(v){return H-pad-(v-lo)/(hi-lo)*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<line x1="'+pad+'" y1="'+Y(0)+'" x2="'+(W-pad)+'" y2="'+Y(0)+'" stroke="#E2E8F0"/>';
+      var p='';for(var t2=0;t2<120;t2++){p+=(t2?'L':'M')+X(t2).toFixed(1)+' '+Y(x[t2]).toFixed(1)+' ';}
+      s+='<path d="'+p+'" fill="none" stroke="#7C3AED" stroke-width="1.8"/>';
+      s+='</svg>';
+      document.getElementById('ar-plot').innerHTML=s;
+      document.getElementById('ar-phi').textContent=phi.toFixed(2);
+      var lbl = phi>1.001?(lang==='id'?'Meledak (eksplosif)':'Explosive') : Math.abs(phi-1)<0.03?(lang==='id'?'Random walk':'Random walk') : phi>0.5?(lang==='id'?'Persisten / menempel':'Persistent / sticky') : phi<-0.3?(lang==='id'?'Berosilasi':'Oscillating') : (lang==='id'?'Mirip derau acak':'Noise-like');
+      document.getElementById('ar-lbl').textContent=lbl;
+    }
+    window.__ar_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="ar-guess">'+
+        '<button class="btn" data-v="persist">'+(lang==='id'?'Menempel / persisten':'Persistent / sticky')+'</button>'+
+        '<button class="btn" data-v="noise">'+(lang==='id'?'Makin acak liar':'More wildly random')+'</button>'+
+      '</div>'+
+      '<div id="ar-after" style="display:none;margin-top:16px;">'+
+        '<div id="ar-plot"></div>'+
+        '<label class="fld" style="display:block;">φ = <b id="ar-phi">0.80</b> · <span id="ar-lbl" style="font-weight:700;color:#7C3AED;"></span></label>'+
+        '<input type="range" id="ar-r" min="-0.9" max="1.05" value="0.8" step="0.05" oninput="(window.__ar_u&&window.__ar_u())"/>'+
+        '<div class="feedback" id="ar-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#ar-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('ar-after').style.display='block';
+      document.getElementById('ar-fb').innerHTML=(lang==='id'
+        ?'Geser φ. Saat φ kecil (~0) deret mirip derau acak tanpa memori. Saat φ mendekati 1 (~0.8) deret jadi <b>persisten</b>: nilai tinggi diikuti nilai tinggi, bergerak lambat dan halus. Pada φ = 1 ia menjadi <b>random walk</b> (tak stasioner), dan φ > 1 membuatnya <b>meledak</b>. φ negatif membuatnya berosilasi naik-turun.'
+        :'Slide φ. When φ is small (~0) the series looks like memoryless random noise. As φ nears 1 (~0.8) it becomes <b>persistent</b>: high values follow high values, moving slowly and smoothly. At φ = 1 it becomes a <b>random walk</b> (non-stationary), and φ > 1 makes it <b>explode</b>. Negative φ makes it oscillate up and down.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Model autoregresif (AR)', en:'Autoregressive (AR) model'}, sub:{id:'Yule & Walker, 1920-an', en:'Yule & Walker, 1920s'},
+    def:{id:'Model deret waktu yang memprediksi nilai saat ini sebagai kombinasi linier dari nilai-nilai sebelumnya pada deret yang sama, ditambah suku derau acak.', en:'A time-series model that predicts the current value as a linear combination of the series’ own previous values, plus a random noise term.'},
+    formula:'xₜ = c + <span class="v">φ₁</span>xₜ₋₁ + … + <span class="v">φₚ</span>xₜ₋ₚ + εₜ',
+    theory:{id:'Koefisien φ mengukur seberapa kuat masa lalu menggema ke masa kini. Untuk AR(1), |φ| < 1 menghasilkan deret stasioner yang kembali ke rata-rata; φ = 1 adalah random walk (tak stasioner, kejutan bertahan selamanya); |φ| > 1 meledak. Inilah jembatan ke stasioneritas: hanya proses dengan akar di dalam lingkaran satuan yang berperilaku stabil dan dapat diramal dengan baik.', en:'The coefficient φ measures how strongly the past echoes into the present. For AR(1), |φ| < 1 gives a stationary, mean-reverting series; φ = 1 is a random walk (non-stationary, shocks persist forever); |φ| > 1 explodes. This is the bridge to stationarity: only processes with roots inside the unit circle behave stably and forecast well.'},
+    practice:{id:'Model AR (dan gabungannya, ARIMA) dipakai untuk meramal penjualan, permintaan energi, dan ekonomi. Kunci pemakaiannya: pastikan deret stasioner dulu (differencing bila perlu), lalu pilih orde p dari pola autokorelasi. Hati-hati: AR mengasumsikan pola masa lalu berlanjut, jadi ia buruk menangkap perubahan rezim atau guncangan mendadak.', en:'AR models (and their combination, ARIMA) are used to forecast sales, energy demand, and economics. The keys to using them: ensure the series is stationary first (difference if needed), then choose the order p from autocorrelation patterns. Beware: AR assumes past patterns continue, so it handles regime changes or sudden shocks poorly.'}
+  }
+});
+
+/* ---------- 22. SVM ---------- */
+addConcept({
+  id:'svm', icon:'🛡️', color:'#9333EA',
+  cat:{id:'Model & prediksi', en:'Models & prediction'},
+  title:{id:'Support Vector Machine', en:'Support Vector Machine'},
+  tag:{id:'Banyak garis bisa memisahkan dua kelompok. SVM memilih satu yang menyisakan lorong terlebar.', en:'Many lines can separate two groups. SVM picks the one that leaves the widest street.'},
+  hook:{id:'Dua kelompok titik bisa dipisahkan oleh banyak garis berbeda. Mana garis pemisah yang “terbaik”?', en:'Two groups of points can be separated by many different lines. Which separating line is “best”?'},
+  build:function(host,lang,reveal){
+    var A=[[2.5,7],[3,8],[3.5,6.6],[2,7.4],[3.3,7.8],[2.7,6.9]], B=[[7,3],[7.6,2.6],[6.6,3.6],[8,3.1],[7.2,2.2],[6.9,3.1]];
+    function gap(th){var c=Math.cos(th),s=Math.sin(th);var pa=A.map(function(p){return p[0]*c+p[1]*s;}),pb=B.map(function(p){return p[0]*c+p[1]*s;});var mxA=Math.max.apply(null,pa),mnA=Math.min.apply(null,pa),mxB=Math.max.apply(null,pb),mnB=Math.min.apply(null,pb);var g,mid;if((mxA+mnA)/2<(mxB+mnB)/2){g=mnB-mxA;mid=(mnB+mxA)/2;}else{g=mnA-mxB;mid=(mnA+mxB)/2;}return {g:g,mid:mid,c:c,s:s};}
+    function draw(){
+      var th=+document.getElementById('sv-r').value*Math.PI/180, info=gap(th), margin=info.g/2;
+      var W=440,H=240,pad=28,Xs=function(x){return pad+x/10*(W-2*pad);},Ys=function(y){return H-pad-y/10*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:460px;height:auto;">';
+      var c=info.c,sn=info.s, dirx=-sn,diry=c, P0x=info.mid*c,P0y=info.mid*sn, Lm=16;
+      function seg(off,dash,wd,col){var bx=(info.mid+off)*c,by=(info.mid+off)*sn;var x1=bx-dirx*Lm,y1=by-diry*Lm,x2=bx+dirx*Lm,y2=by+diry*Lm;return '<line x1="'+Xs(x1).toFixed(1)+'" y1="'+Ys(y1).toFixed(1)+'" x2="'+Xs(x2).toFixed(1)+'" y2="'+Ys(y2).toFixed(1)+'" stroke="'+col+'" stroke-width="'+wd+'"'+(dash?' stroke-dasharray="4,3"':'')+'/>';}
+      if(info.g>0){ s+=seg(margin,1,1.4,'#C4B5FD')+seg(-margin,1,1.4,'#C4B5FD'); }
+      s+=seg(0,0,2.4,info.g>0?'#9333EA':'#EF4444');
+      A.forEach(function(p){s+='<circle cx="'+Xs(p[0]).toFixed(1)+'" cy="'+Ys(p[1]).toFixed(1)+'" r="5" fill="#2563EB"/>';});
+      B.forEach(function(p){s+='<circle cx="'+Xs(p[0]).toFixed(1)+'" cy="'+Ys(p[1]).toFixed(1)+'" r="5" fill="#16A34A"/>';});
+      s+='</svg>';
+      document.getElementById('sv-plot').innerHTML=s;
+      document.getElementById('sv-m').textContent=(info.g>0?margin.toFixed(2):(lang==='id'?'tak terpisah':'not separable'));
+    }
+    window.__sv_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="sv-guess">'+
+        '<button class="btn" data-v="near">'+(lang==='id'?'Yang menempel satu kelompok':'The one hugging a group')+'</button>'+
+        '<button class="btn" data-v="wide">'+(lang==='id'?'Yang jaraknya paling lebar':'The one with widest gap')+'</button>'+
+      '</div>'+
+      '<div id="sv-after" style="display:none;margin-top:16px;">'+
+        '<div id="sv-plot"></div>'+
+        '<p class="readout" style="margin:2px 0;">'+(lang==='id'?'Ungu = garis pemisah; garis putus = batas “lorong” (margin).':'Purple = separating line; dashed = the margin “street”.')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Sudut garis: ':'Line angle: ')+'<b id="sv-deg">90</b>° · margin = <b id="sv-m" style="color:#9333EA;"></b></label>'+
+        '<input type="range" id="sv-r" min="0" max="180" value="90" step="1" oninput="document.getElementById(\'sv-deg\').textContent=this.value;(window.__sv_u&&window.__sv_u())"/>'+
+        '<div class="btn-row" style="margin-top:10px;"><button class="btn primary" id="sv-opt">'+(lang==='id'?'Maksimalkan margin':'Maximize the margin')+'</button></div>'+
+        '<div class="feedback" id="sv-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#sv-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('sv-after').style.display='block';
+      document.getElementById('sv-fb').innerHTML=(lang==='id'
+        ?'Putar sudut garis dan perhatikan lebar “lorong” (margin). Garis terbaik bukan yang asal memisahkan, melainkan yang menyisakan <b>margin terlebar</b> ke titik terdekat kedua kelompok. Margin lebar = paling tahan terhadap titik baru yang sedikit bergeser. Titik-titik tepat di tepi lorong itulah “support vector” yang menentukan garis.'
+        :'Rotate the line and watch the “street” width (margin). The best line is not one that merely separates, but the one leaving the <b>widest margin</b> to the nearest points of both groups. A wide margin = most robust to new points that shift slightly. The points right on the edge are the “support vectors” that define the line.');
+      document.getElementById('sv-r').oninput(); reveal();
+    };});
+    setTimeout(function(){var ob=document.getElementById('sv-opt'); if(ob) ob.onclick=function(){var best=0,bg=-1;for(var dd=0;dd<=180;dd++){var g=gap(dd*Math.PI/180).g;if(g>bg){bg=g;best=dd;}}var r=document.getElementById('sv-r');r.value=best;document.getElementById('sv-deg').textContent=best;draw();};},0);
+  },
+  concept:{
+    name:{id:'Support Vector Machine (SVM)', en:'Support Vector Machine (SVM)'}, sub:{id:'Vapnik & Cortes, 1995', en:'Vapnik & Cortes, 1995'},
+    def:{id:'Model klasifikasi yang mencari batas pemisah antar kelas dengan memaksimalkan margin — jarak terlebar ke titik data terdekat dari tiap kelas (support vector).', en:'A classification model that finds the boundary between classes by maximizing the margin — the widest distance to the nearest data points of each class (the support vectors).'},
+    formula:'maks margin = 2/‖w‖   s.t.  yᵢ(w·xᵢ + b) ≥ 1',
+    theory:{id:'Di antara tak hingga banyak garis pemisah, SVM memilih yang paling “lega” terhadap kedua kelas; secara matematis ini meminimalkan ‖w‖ dengan kendala semua titik berada di sisi benar margin. Margin lebar mengurangi sensitivitas terhadap gangguan kecil, sehingga generalisasi lebih baik. Untuk data yang tidak terpisah linier, “kernel trick” memetakan data ke ruang dimensi lebih tinggi tempat pemisahan linier menjadi mungkin.', en:'Among infinitely many separating lines, SVM picks the one most “roomy” for both classes; mathematically this minimizes ‖w‖ subject to all points lying on the correct side of the margin. A wide margin reduces sensitivity to small perturbations, improving generalization. For data not linearly separable, the “kernel trick” maps it into a higher-dimensional space where linear separation becomes possible.'},
+    practice:{id:'SVM kuat pada data berdimensi tinggi dengan sampel terbatas (mis. klasifikasi teks, bioinformatika). Hanya support vector yang menentukan model, membuatnya hemat memori. Kelemahannya: pemilihan kernel dan parameter (C, γ) butuh penyetelan, dan ia kurang skala untuk dataset sangat besar dibanding metode berbasis pohon atau jaringan saraf.', en:'SVM is strong on high-dimensional data with limited samples (e.g. text classification, bioinformatics). Only the support vectors define the model, making it memory-efficient. Drawbacks: kernel and parameter choice (C, γ) need tuning, and it scales poorly to very large datasets compared with tree-based or neural methods.'}
+  }
+});
+
+/* ---------- 23. causal inference ---------- */
+addConcept({
+  id:'causal', icon:'🧬', color:'#BE123C',
+  cat:{id:'Inferensi', en:'Inference'},
+  title:{id:'Inferensi kausal', en:'Causal inference'},
+  tag:{id:'Kalau tak bisa mengacak, kita masih bisa mendekati sebab — dengan mengendalikan perancu yang tepat.', en:'When you cannot randomize, you can still approach cause — by controlling the right confounders.'},
+  hook:{id:'Pengguna app versi premium ternyata lebih loyal. Apakah fitur premium yang membuat mereka loyal?', en:'Users on the premium app turn out more loyal. Did the premium features make them loyal?'},
+  build:function(host,lang,reveal){
+    function render(){
+      var adj=document.getElementById('ca-mode').value==='adj';
+      var est=adj?1:8, note=adj
+        ?(lang==='id'?'Setelah membandingkan hanya pengguna dengan tingkat keterlibatan awal yang sama, efek premium menyusut jadi +1. Sebagian besar “loyalitas” tadi berasal dari fans berat yang memang sudah loyal sebelum membeli premium.':'After comparing only users with the same baseline engagement, the premium effect shrinks to +1. Most of that “loyalty” came from heavy fans who were already loyal before buying premium.')
+        :(lang==='id'?'Tanpa kontrol, premium tampak menaikkan loyalitas +8. Tapi yang membeli premium cenderung sudah fans berat (perancu) — mereka akan loyal apa pun yang terjadi.':'Without control, premium appears to lift loyalty +8. But premium buyers tend to already be heavy fans (a confounder) — they would stay loyal regardless.');
+      document.getElementById('ca-est').textContent='+'+est;
+      document.getElementById('ca-note').textContent=note;
+      document.getElementById('ca-bar').style.width=(est/8*100)+'%';
+      document.getElementById('ca-bar').style.background=adj?'#16A34A':'#BE123C';
+      document.getElementById('ca-z').style.opacity=adj?'1':'0.25';
+    }
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="ca-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, premium bikin loyal':'Yes, premium causes loyalty')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Mungkin ada perancu':'Maybe a confounder')+'</button>'+
+      '</div>'+
+      '<div id="ca-after" style="display:none;margin-top:16px;">'+
+        '<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">'+
+          '<div id="ca-z" style="background:#FEF3C7;color:#854D0E;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;">'+(lang==='id'?'Fans berat (perancu)':'Heavy fan (confounder)')+'</div>'+
+          '<div style="font-size:12px;color:#94A3B8;">→ '+(lang==='id'?'beli premium & tetap loyal':'buys premium & stays loyal')+'</div>'+
+        '</div>'+
+        '<div class="btn-row" style="margin-bottom:14px;">'+
+          '<button class="btn primary" id="ca-naive">'+(lang==='id'?'Tanpa kontrol perancu':'No control')+'</button>'+
+          '<button class="btn" id="ca-adj">'+(lang==='id'?'Kontrol perancu':'Control the confounder')+'</button>'+
+        '</div>'+
+        '<select id="ca-mode" style="display:none;"><option value="naive">naive</option><option value="adj">adj</option></select>'+
+        '<div style="background:#F1F5F9;border-radius:10px;padding:14px;">'+
+          '<div class="readout">'+(lang==='id'?'Efek premium → loyalitas':'Premium effect → loyalty')+'</div>'+
+          '<div style="background:#E2E8F0;border-radius:6px;height:16px;margin:8px 0;"><div id="ca-bar" style="height:16px;border-radius:6px;width:100%;background:#BE123C;"></div></div>'+
+          '<div class="big" id="ca-est" style="font-size:22px;"></div>'+
+        '</div>'+
+        '<p class="readout" id="ca-note" style="margin-top:10px;"></p>'+
+        '<div class="feedback" id="ca-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#ca-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('ca-after').style.display='block';
+      document.getElementById('ca-fb').innerHTML=(lang==='id'
+        ?'Klik kedua tombol. Tanpa randomisasi, kita masih bisa mendekati efek sebab dengan <b>mengendalikan perancu</b> — membandingkan apel dengan apel (pengguna dengan keterlibatan awal sama). Efek yang tampak +8 menyusut jadi +1 setelah perancu “fans berat” diperhitungkan. Inferensi kausal adalah seni memilih variabel apa yang harus (dan tidak boleh) dikontrol.'
+        :'Click both buttons. Without randomization, we can still approach the causal effect by <b>controlling the confounder</b> — comparing like with like (users at the same baseline engagement). The apparent +8 effect shrinks to +1 once the “heavy fan” confounder is accounted for. Causal inference is the art of choosing which variables to control for (and which not to).');
+      render(); reveal();
+    };});
+    setTimeout(function(){
+      var nv=document.getElementById('ca-naive'), aj=document.getElementById('ca-adj'), md=document.getElementById('ca-mode');
+      if(nv) nv.onclick=function(){md.value='naive';nv.className='btn primary';aj.className='btn';render();};
+      if(aj) aj.onclick=function(){md.value='adj';aj.className='btn primary';nv.className='btn';render();};
+    },0);
+  },
+  concept:{
+    name:{id:'Inferensi kausal', en:'Causal inference'}, sub:{id:'Judea Pearl; Rubin', en:'Judea Pearl; Rubin'},
+    def:{id:'Sekumpulan metode untuk memperkirakan efek sebab-akibat dari sebuah perlakuan terhadap hasil, terutama ketika eksperimen acak tidak mungkin dilakukan dan hanya tersedia data observasi.', en:'A set of methods for estimating the cause-and-effect impact of a treatment on an outcome, especially when randomized experiments are impossible and only observational data are available.'},
+    formula:'efek kausal = E[Y | do(X=1)] − E[Y | do(X=0)]<br>≠ E[Y | X=1] − E[Y | X=0] bila ada perancu',
+    theory:{id:'Operator do() membedakan “mengamati X” dari “menetapkan X” — inilah jarak antara korelasi dan sebab. Bila semua perancu (jalur belakang) yang relevan diukur dan dikendalikan, efek kausal dapat diperkirakan dari data observasi (kriteria backdoor). Tapi mengontrol variabel yang salah — misalnya collider atau mediator — justru bisa menciptakan bias baru. Karena itu dibutuhkan diagram kausal, bukan sekadar memasukkan semua variabel ke model.', en:'The do() operator distinguishes “observing X” from “setting X” — that is the gap between correlation and cause. If all relevant confounders (backdoor paths) are measured and controlled, the causal effect can be estimated from observational data (the backdoor criterion). But controlling the wrong variable — a collider or a mediator — can create new bias. This is why causal diagrams are needed, not just throwing every variable into the model.'},
+    practice:{id:'Bila tidak bisa mengacak, gunakan metode seperti regresi dengan kontrol perancu, matching, difference-in-differences, regression discontinuity, atau variabel instrumen. Kunci keberhasilannya adalah asumsi yang masuk akal tentang struktur sebab — yang harus dipertanggungjawabkan secara eksplisit, bukan disembunyikan. Inferensi kausal yang baik bersikap rendah hati tentang apa yang tidak teramati.', en:'When you cannot randomize, use methods like regression with confounder control, matching, difference-in-differences, regression discontinuity, or instrumental variables. The key to success is plausible assumptions about the causal structure — which must be stated explicitly, not hidden. Good causal inference stays humble about what is unobserved.'}
+  }
+});
+
+/* ---------- 24. marketing mix model ---------- */
+addConcept({
+  id:'mmm', icon:'📺', color:'#DB2777',
+  cat:{id:'Model & prediksi', en:'Models & prediction'},
+  title:{id:'Marketing Mix Model', en:'Marketing Mix Model'},
+  tag:{id:'Menggandakan budget jarang menggandakan penjualan — tiap kanal punya titik jenuh.', en:'Doubling the budget rarely doubles sales — each channel has a saturation point.'},
+  hook:{id:'Kalau kamu menggandakan anggaran iklan TV, apakah penjualan dari TV ikut berlipat dua?', en:'If you double your TV ad budget, do TV-driven sales double too?'},
+  build:function(host,lang,reveal){
+    var ch=[{n:'TV',b:55,k:30,c:'#DB2777'},{n:'Digital',b:42,k:22,c:'#2563EB'},{n:'Radio',b:24,k:16,c:'#16A34A'}], base=20;
+    function draw(){
+      var total=base, html='';
+      ch.forEach(function(c,i){
+        var sp=+document.getElementById('mm-'+i).value;
+        var contrib=c.b*(1-Math.exp(-sp/c.k));
+        var mroi=(c.b/c.k)*Math.exp(-sp/c.k);
+        total+=contrib;
+        document.getElementById('mm-v'+i).textContent='Rp'+sp;
+        html+='<div style="margin:7px 0;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>'+c.n+'</span><span style="color:'+c.c+'">+'+contrib.toFixed(0)+' · ROI marjinal '+mroi.toFixed(2)+'</span></div>'+
+          '<div style="background:#F1F5F9;border-radius:6px;height:11px;margin-top:3px;"><div style="width:'+(contrib/c.b*100)+'%;height:11px;border-radius:6px;background:'+c.c+'"></div></div></div>';
+      });
+      document.getElementById('mm-bars').innerHTML=html;
+      document.getElementById('mm-total').textContent=total.toFixed(0);
+    }
+    window.__mm_u=draw;
+    var sliders='';
+    ch.forEach(function(c,i){ sliders+='<label class="fld" style="display:block;margin-top:6px;">'+(lang==='id'?'Anggaran ':'Budget ')+c.n+': <b id="mm-v'+i+'">Rp50</b></label>'+
+      '<input type="range" id="mm-'+i+'" min="0" max="100" value="50" step="1" oninput="(window.__mm_u&&window.__mm_u())"/>'; });
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="mm-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, berlipat dua':'Yes, it doubles')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Tidak sebanding':'Less than double')+'</button>'+
+      '</div>'+
+      '<div id="mm-after" style="display:none;margin-top:16px;">'+
+        sliders+
+        '<div id="mm-bars" style="margin-top:12px;"></div>'+
+        '<p class="big" style="font-size:20px;margin-top:8px;">'+(lang==='id'?'Perkiraan penjualan: ':'Predicted sales: ')+'<span id="mm-total" style="color:#DB2777;"></span></p>'+
+        '<div class="feedback" id="mm-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#mm-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('mm-after').style.display='block';
+      document.getElementById('mm-fb').innerHTML=(lang==='id'
+        ?'Naikkan satu anggaran dari rendah ke tinggi: kontribusinya naik cepat lalu mendatar (jenuh). ROI marjinal — penjualan ekstra per rupiah berikutnya — terus mengecil. Jadi menggandakan TV tidak menggandakan penjualan TV. Tujuan MMM adalah menemukan campuran kanal yang menyeimbangkan ROI marjinal, bukan menuang semua dana ke satu kanal.'
+        :'Raise one budget from low to high: its contribution rises fast then flattens (saturates). The marginal ROI — extra sales per next rupiah — keeps shrinking. So doubling TV does not double TV sales. The goal of MMM is to find the channel mix that balances marginal ROI, not pour all funds into one channel.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Marketing Mix Model (MMM)', en:'Marketing Mix Model (MMM)'}, sub:{id:'ekonometrika pemasaran', en:'marketing econometrics'},
+    def:{id:'Model statistik yang mengurai penjualan menjadi kontribusi dari berbagai kanal pemasaran dan faktor lain, untuk mengukur efektivitas tiap kanal dan memandu alokasi anggaran.', en:'A statistical model that decomposes sales into contributions from various marketing channels and other factors, to measure each channel’s effectiveness and guide budget allocation.'},
+    formula:'Penjualan = dasar + Σ βᵢ · saturasi(belanjaᵢ) + musiman + …<br>saturasi: efek ↑ lalu mendatar (diminishing returns)',
+    theory:{id:'Dua fenomena nyata membuat hubungan belanja–penjualan tidak linier: diminishing returns (tiap rupiah tambahan memberi efek lebih kecil saat kanal jenuh) dan adstock (efek iklan tertinggal beberapa periode, tidak langsung hilang). MMM memodelkan keduanya, lalu memperkirakan kontribusi tiap kanal dari data historis. Karena berbasis observasi (bukan eksperimen), hasilnya rentan terhadap perancu dan korelasi antar-belanja kanal.', en:'Two real phenomena make the spend–sales relationship nonlinear: diminishing returns (each extra rupiah has a smaller effect as a channel saturates) and adstock (ad effects carry over several periods, not vanishing instantly). MMM models both, then estimates each channel’s contribution from historical data. Because it is observational (not experimental), its results are vulnerable to confounding and correlation between channel spends.'},
+    practice:{id:'MMM dipakai untuk merencanakan anggaran tingkat tinggi dan mengukur kanal yang sulit dilacak per individu (TV, billboard). Aturan emasnya: alokasikan agar ROI marjinal antar kanal seimbang, bukan mengejar kanal dengan ROI rata-rata tertinggi. Validasi dengan eksperimen (geo-test/lift test) bila memungkinkan, karena MMM sendiri tidak membuktikan sebab secara penuh.', en:'MMM is used for high-level budget planning and measuring channels hard to track per individual (TV, billboards). The golden rule: allocate so that marginal ROI is balanced across channels, not chase the channel with the highest average ROI. Validate with experiments (geo-tests/lift tests) where possible, since MMM alone does not fully prove causation.'}
+  }
+});
+
+/* ---------- 25. central limit theorem ---------- */
+addConcept({
+  id:'clt', icon:'🔔', color:'#7C3AED',
+  cat:{id:'Probabilitas', en:'Probability'},
+  title:{id:'Teorema limit pusat', en:'Central limit theorem'},
+  tag:{id:'Rata-rata dari apa pun — bahkan data paling berantakan — perlahan membentuk kurva lonceng yang sama.', en:'The average of anything — even the messiest data — slowly forms the same bell curve.'},
+  hook:{id:'Populasi aslinya jauh dari lonceng (sangat miring atau dua puncak). Kalau kita ambil banyak sampel lalu menghitung rata-ratanya, bentuk sebaran rata-rata itu akan jadi seperti apa?', en:'The original population is far from a bell (very skewed or two-peaked). If we take many samples and compute their means, what shape will the distribution of those means take?'},
+  build:function(host,lang,reveal){
+    var shape='skew';
+    function sampler(rng){ if(shape==='unif') return rng(); if(shape==='bimod') return rng()<0.5?rng()*0.26:0.74+rng()*0.26; return Math.min(0.999,(-Math.log(1-rng()))/6); }
+    function hist(vals,K){ var b=new Array(K).fill(0); vals.forEach(function(v){var i=Math.min(K-1,Math.floor(v*K));b[i]++;}); var mx=Math.max.apply(null,b); return {b:b,mx:mx}; }
+    function svgHist(h,col,K){ var W=220,H=120,pad=14,bw=(W-2*pad)/K; var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:240px;height:auto;">'; for(var i=0;i<K;i++){var hh=h.mx?h.b[i]/h.mx*(H-2*pad):0,x=pad+i*bw,y=H-pad-hh; s+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw-0.6).toFixed(1)+'" height="'+Math.max(0.4,hh).toFixed(1)+'" fill="'+col+'"/>';} return s+'</svg>'; }
+    function draw(){
+      var n=Math.round(+document.getElementById('cl-r').value), K=30, M=2500;
+      var rng=mulberry32(77);
+      var pop=[]; for(var i=0;i<3000;i++) pop.push(sampler(rng));
+      var means=[]; for(var j=0;j<M;j++){var s=0;for(var k=0;k<n;k++)s+=sampler(rng);means.push(s/n);}
+      document.getElementById('cl-pop').innerHTML=svgHist(hist(pop,K),'#CBD5E1',K);
+      document.getElementById('cl-mean').innerHTML=svgHist(hist(means,K),'#7C3AED',K);
+      document.getElementById('cl-n').textContent=n;
+      var mu=means.reduce(function(a,b){return a+b;},0)/M, sd=Math.sqrt(means.reduce(function(a,b){return a+(b-mu)*(b-mu);},0)/M);
+      document.getElementById('cl-sd').textContent=sd.toFixed(3);
+    }
+    window.__cl_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="cl-guess">'+
+        '<button class="btn" data-v="same">'+(lang==='id'?'Tetap miring seperti populasi':'Stays skewed like the population')+'</button>'+
+        '<button class="btn" data-v="bell">'+(lang==='id'?'Menjadi lonceng (normal)':'Becomes a bell (normal)')+'</button>'+
+      '</div>'+
+      '<div id="cl-after" style="display:none;margin-top:16px;">'+
+        '<div class="btn-row" style="margin-bottom:12px;">'+
+          '<button class="btn primary" id="cl-skew">'+(lang==='id'?'Miring':'Skewed')+'</button>'+
+          '<button class="btn" id="cl-unif">'+(lang==='id'?'Seragam':'Uniform')+'</button>'+
+          '<button class="btn" id="cl-bimod">'+(lang==='id'?'Dua puncak':'Two peaks')+'</button>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'+
+          '<div style="text-align:center;"><div class="readout" style="margin-bottom:4px;">'+(lang==='id'?'Populasi asli':'Original population')+'</div><div id="cl-pop"></div></div>'+
+          '<div style="text-align:center;"><div class="readout" style="margin-bottom:4px;">'+(lang==='id'?'Sebaran rata-rata':'Distribution of means')+'</div><div id="cl-mean"></div></div>'+
+        '</div>'+
+        '<label class="fld" style="display:block;margin-top:10px;">'+(lang==='id'?'Ukuran tiap sampel n: ':'Each sample size n: ')+'<b id="cl-n">1</b> · '+(lang==='id'?'simpangan baku rata-rata: ':'std dev of means: ')+'<b id="cl-sd" style="color:#7C3AED;"></b></label>'+
+        '<input type="range" id="cl-r" min="1" max="50" value="1" step="1" oninput="(window.__cl_u&&window.__cl_u())"/>'+
+        '<div class="feedback" id="cl-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#cl-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('cl-after').style.display='block';
+      document.getElementById('cl-fb').innerHTML=(lang==='id'
+        ?'Geser n dari 1 ke atas: di n=1 sebaran rata-rata sama persis dengan populasi (miring/dua puncak), tapi mulai n≈10–30 ia berubah jadi <b>lonceng</b> yang mulus — apa pun bentuk aslinya. Coba ketiga bentuk populasi, hasilnya sama. Selain itu lonceng makin sempit (simpangan baku turun seperti σ/√n). Inilah alasan distribusi normal muncul di mana-mana.'
+        :'Slide n upward: at n=1 the distribution of means is identical to the population (skewed/two-peaked), but from n≈10–30 it turns into a smooth <b>bell</b> — whatever the original shape. Try all three population shapes; the result is the same. The bell also narrows (its std dev falls like σ/√n). This is why the normal distribution shows up everywhere.');
+      draw(); reveal();
+    };});
+    setTimeout(function(){
+      var sk=document.getElementById('cl-skew'),un=document.getElementById('cl-unif'),bi=document.getElementById('cl-bimod');
+      function set(sh,a){shape=sh;[sk,un,bi].forEach(function(x){x.className='btn';});a.className='btn primary';draw();}
+      if(sk){sk.onclick=function(){set('skew',sk);};un.onclick=function(){set('unif',un);};bi.onclick=function(){set('bimod',bi);};}
+    },0);
+  },
+  concept:{
+    name:{id:'Teorema limit pusat', en:'Central limit theorem'}, sub:{id:'de Moivre–Laplace; Lyapunov', en:'de Moivre–Laplace; Lyapunov'},
+    def:{id:'Jika kita menjumlahkan atau merata-ratakan banyak variabel acak yang independen dengan ragam terbatas, distribusi dari jumlah/rata-rata itu akan mendekati distribusi normal, berapa pun bentuk distribusi asalnya.', en:'If we sum or average many independent random variables with finite variance, the distribution of that sum/mean approaches a normal distribution, regardless of the original distribution’s shape.'},
+    formula:'X̄ₙ → Normal( μ, σ²/n )   saat n → ∞',
+    theory:{id:'Inilah “mengapa” di balik kurva lonceng yang ada di mana-mana: banyak besaran nyata adalah hasil penjumlahan dari banyak pengaruh acak kecil, sehingga otomatis menjadi normal. Penjumlahan meredam keanehan bentuk asal — kemiringan dan puncak ganda saling rata. Yang dibutuhkan hanyalah variabel independen dengan ragam terbatas; kecepatan konvergensinya bergantung pada seberapa “liar” distribusi awalnya (yang miring butuh n lebih besar).', en:'This is the “why” behind the ubiquitous bell curve: many real quantities are sums of many small random influences, so they automatically become normal. Summation washes out the quirks of the original shape — skew and double peaks average out. All that is needed is independent variables with finite variance; the speed of convergence depends on how “wild” the starting distribution is (skewed ones need larger n).'},
+    practice:{id:'Teorema ini adalah izin teoretis di balik banyak alat statistik: selang kepercayaan, uji-t, dan uji-z bekerja karena rata-rata sampel menjadi normal. Itu sebabnya “n ≥ 30” sering dipakai sebagai aturan praktis. Hati-hati pada pengecualian: data berekor sangat berat (ragam tak terbatas) atau data yang tidak independen bisa gagal menyatu, sehingga asumsi normal menjadi keliru.', en:'This theorem is the theoretical license behind many statistical tools: confidence intervals, t-tests, and z-tests work because sample means become normal. That is why “n ≥ 30” is often used as a rule of thumb. Beware the exceptions: very heavy-tailed data (infinite variance) or non-independent data may fail to converge, making the normality assumption wrong.'}
+  }
+});
+
 /* ============================ rendering ============================ */
 var activeCat='__all', activeId=null;
 
