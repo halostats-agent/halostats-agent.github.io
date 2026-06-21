@@ -412,6 +412,379 @@ addConcept({
   }
 });
 
+/* extra stat helpers */
+function nCk(n,k){var r=1;for(var i=0;i<k;i++){r=r*(n-i)/(i+1);}return r;}
+function binomPmf(n,k,p){return nCk(n,k)*Math.pow(p,k)*Math.pow(1-p,n-k);}
+function erf(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);var y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+function normCdf(x){return 0.5*(1+erf(x/Math.SQRT2));}
+function invNorm(p){var a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239],b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1],c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996,3.754408661907416],pl=0.02425,ph=1-pl,q,r;if(p<pl){q=Math.sqrt(-2*Math.log(p));return(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}if(p<=ph){q=p-0.5;r=q*q;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+
+/* ---------- 4. p-value ---------- */
+addConcept({
+  id:'pval', icon:'🎲', color:'#2563EB',
+  cat:{id:'Inferensi', en:'Inference'},
+  title:{id:'p-value', en:'p-value'},
+  tag:{id:'Seberapa mengejutkan data ini seandainya tidak ada efek apa-apa? Bukan peluang kamu benar.', en:'How surprising is this data if there were no effect at all? Not the probability you are right.'},
+  hook:{id:'Sebuah koin dilempar 20 kali dan muncul 15 angka. Curang, atau masih wajar untuk koin adil?', en:'A coin is flipped 20 times and lands 15 heads. Rigged, or still plausible for a fair coin?'},
+  build:function(host,lang,reveal){
+    function pmf(k){return binomPmf(20,k,0.5);}
+    function pTwo(obs){var o=Math.min(obs,20-obs),s=0;for(var k=0;k<=20;k++){if(Math.min(k,20-k)<=o)s+=pmf(k);}return Math.min(1,s);}
+    function draw(obs){
+      var W=460,H=180,pad=24,bw=(W-2*pad)/21,mx=pmf(10);
+      var o=Math.min(obs,20-obs);
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      for(var k=0;k<=20;k++){var h=pmf(k)/mx*(H-2*pad-8),x=pad+k*bw,y=H-pad-h,tail=(Math.min(k,20-k)<=o);
+        s+='<rect x="'+(x+1).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+Math.max(0.5,h).toFixed(1)+'" rx="1.5" fill="'+(tail?'#EF4444':'#BFDBFE')+'"/>';}
+      s+='<text x="'+pad+'" y="'+(H-7)+'" font-size="9" fill="#94A3B8">0</text>';
+      s+='<text x="'+(pad+10*bw+bw/2).toFixed(0)+'" y="'+(H-7)+'" text-anchor="middle" font-size="9" fill="#94A3B8">10</text>';
+      s+='<text x="'+(W-pad)+'" y="'+(H-7)+'" text-anchor="end" font-size="9" fill="#94A3B8">20</text>';
+      return s+'</svg>';
+    }
+    function update(){
+      var obs=+document.getElementById('pv-r').value;
+      document.getElementById('pv-obs').textContent=obs;
+      document.getElementById('pv-plot').innerHTML=draw(obs);
+      var p=pTwo(obs), sig=p<0.05;
+      document.getElementById('pv-p').textContent=(p<0.001?'< 0.001':p.toFixed(3));
+      var v=document.getElementById('pv-verd');
+      v.textContent=sig?(lang==='id'?'p < 0.05 → signifikan secara statistik':'p < 0.05 → statistically significant'):(lang==='id'?'p ≥ 0.05 → belum signifikan':'p ≥ 0.05 → not significant');
+      v.style.color=sig?'#16A34A':'#EF4444';
+    }
+    window.__pv_u=update;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="pv-guess">'+
+        '<button class="btn" data-v="cheat">'+(lang==='id'?'Pasti curang':'Surely rigged')+'</button>'+
+        '<button class="btn" data-v="fair">'+(lang==='id'?'Masih wajar':'Still plausible')+'</button>'+
+      '</div>'+
+      '<div id="pv-after" style="display:none;margin-top:16px;">'+
+        '<p class="readout" style="margin-bottom:8px;">'+(lang==='id'?'Sebaran jumlah angka jika koin <b>adil</b> (H₀). Merah = hasil “seekstrem ini atau lebih”.':'Distribution of heads if the coin is <b>fair</b> (H₀). Red = outcomes “this extreme or more”.')+'</p>'+
+        '<div id="pv-plot"></div>'+
+        '<label class="fld" style="margin-top:8px;display:block;">'+(lang==='id'?'Jumlah angka teramati: ':'Heads observed: ')+'<b id="pv-obs">15</b> / 20</label>'+
+        '<input type="range" id="pv-r" min="10" max="20" value="15" step="1" oninput="(window.__pv_u&&window.__pv_u())"/>'+
+        '<div style="display:flex;align-items:baseline;gap:10px;margin-top:8px;"><span class="readout">p-value:</span><span class="big" id="pv-p">0.041</span></div>'+
+        '<div style="font-weight:800;font-size:14px;margin-top:4px;" id="pv-verd"></div>'+
+        '<div class="feedback" id="pv-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#pv-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('pv-after').style.display='block';
+      document.getElementById('pv-fb').innerHTML=(lang==='id'
+        ?'15/20 memberi <b>p ≈ 0.041</b> — tepat di ambang, “signifikan” tapi tipis, bukan bukti telak seperti dugaan kebanyakan orang. Geser slider: 13/20 (p ≈ 0.26) sangat wajar, sementara 17/20 baru benar-benar mengejutkan. Ambang 0.05 itu konvensi, bukan garis ajaib.'
+        :'15/20 gives <b>p ≈ 0.041</b> — right at the threshold, “significant” but thin, not the slam-dunk most people assume. Slide it: 13/20 (p ≈ 0.26) is very normal, while 17/20 is genuinely surprising. The 0.05 cutoff is a convention, not a magic line.');
+      update(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'p-value', en:'p-value'}, sub:{id:'Ronald Fisher, 1925', en:'Ronald Fisher, 1925'},
+    def:{id:'Peluang memperoleh data seekstrem ini (atau lebih) seandainya hipotesis nol (tidak ada efek) benar. Semakin kecil p, semakin mengejutkan data itu di bawah asumsi “tidak ada efek”.', en:'The probability of obtaining data this extreme (or more) if the null hypothesis (no effect) were true. The smaller the p, the more surprising the data is under the “no effect” assumption.'},
+    formula:'p = P( data ≥ seekstrem ini | <span class="v">H₀</span> benar )',
+    theory:{id:'p-value bukan peluang bahwa hipotesismu benar, dan bukan ukuran besarnya efek. Ia hanya mengukur kecocokan data dengan model “tidak ada efek”. Ambang 0,05 adalah konvensi arbitrer dari Fisher, bukan hukum alam. p besar bukan bukti H₀ benar — hanya berarti data belum cukup menentangnya.', en:'A p-value is not the probability that your hypothesis is true, nor a measure of effect size. It only measures how compatible the data are with the “no effect” model. The 0.05 threshold is an arbitrary convention from Fisher, not a law of nature. A large p is not evidence that H₀ is true — it just means the data do not contradict it strongly enough.'},
+    practice:{id:'Bahaya terbesar adalah p-hacking: mencoba banyak uji lalu melaporkan yang kebetulan p < 0,05. Dengan sampel sangat besar, efek yang remeh pun bisa “signifikan” secara statistik tapi tak berarti secara praktis. Selalu laporkan ukuran efek dan selang kepercayaan, bukan hanya p, dan tetapkan hipotesis sebelum melihat data.', en:'The biggest danger is p-hacking: running many tests and reporting whichever happens to hit p < 0.05. With a very large sample, even a trivial effect can be “statistically significant” yet meaningless in practice. Always report the effect size and confidence interval, not just p, and fix your hypothesis before looking at the data.'}
+  }
+});
+
+/* ---------- 5. confidence interval ---------- */
+addConcept({
+  id:'ci', icon:'📏', color:'#0EA5E9',
+  cat:{id:'Inferensi', en:'Inference'},
+  title:{id:'Selang kepercayaan', en:'Confidence interval'},
+  tag:{id:'“95% yakin” bukan berarti 95% peluang nilai sejati ada di selang ini. Maknanya lebih halus.', en:'“95% confident” does not mean a 95% chance the true value is in this interval. The meaning is subtler.'},
+  hook:{id:'Rata-rata sejati populasi = 50 (kita yang atur). Kalau kita buat 20 selang kepercayaan 95% dari 20 sampel berbeda, kira-kira berapa yang memuat angka 50?', en:'The true population mean is 50 (we set it). If we build 20 different 95% confidence intervals from 20 samples, roughly how many will contain 50?'},
+  build:function(host,lang,reveal){
+    var TRUE=50, se0=10/Math.sqrt(30), seed=11, samples=[];
+    function gen(){var rng=mulberry32(seed);samples=[];for(var i=0;i<20;i++){samples.push(TRUE+gauss(rng)*se0);}}
+    gen();
+    function draw(){
+      var conf=+document.getElementById('ci-r').value, z=invNorm(1-(1-conf/100)/2);
+      var W=460,H=250,padL=20,padR=20,padT=18,padB=20,lo=TRUE-7,hi=TRUE+7;
+      var X=function(v){return padL+(v-lo)/(hi-lo)*(W-padL-padR);};
+      var rowH=(H-padT-padB)/20, cover=0;
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<line x1="'+X(TRUE)+'" y1="'+padT+'" x2="'+X(TRUE)+'" y2="'+(H-padB)+'" stroke="#0F172A" stroke-width="1.5" stroke-dasharray="3,3"/>';
+      s+='<text x="'+X(TRUE)+'" y="14" text-anchor="middle" font-size="10" font-weight="800" fill="#0F172A">μ = 50</text>';
+      samples.forEach(function(m,i){var a=m-z*se0,b=m+z*se0,y=padT+i*rowH+rowH/2,ok=(a<=TRUE&&TRUE<=b);if(ok)cover++;var col=ok?'#16A34A':'#EF4444';
+        s+='<line x1="'+X(a).toFixed(1)+'" y1="'+y.toFixed(1)+'" x2="'+X(b).toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+col+'" stroke-width="2.4"/>';
+        s+='<circle cx="'+X(m).toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2.6" fill="'+col+'"/>';});
+      s+='</svg>';
+      document.getElementById('ci-plot').innerHTML=s;
+      document.getElementById('ci-cov').innerHTML='<b style="color:#16A34A">'+cover+'</b> / 20 '+(lang==='id'?'memuat μ — target ':'contain μ — target ')+conf+'%';
+      document.getElementById('ci-conf').textContent=conf+'%';
+    }
+    window.__ci_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="ci-guess">'+
+        '<button class="btn" data-v="20">'+(lang==='id'?'Semua (20)':'All (20)')+'</button>'+
+        '<button class="btn" data-v="19">'+(lang==='id'?'Sekitar 19':'About 19')+'</button>'+
+        '<button class="btn" data-v="10">'+(lang==='id'?'Sekitar 10':'About 10')+'</button>'+
+      '</div>'+
+      '<div id="ci-after" style="display:none;margin-top:16px;">'+
+        '<div id="ci-plot"></div>'+
+        '<p class="big" id="ci-cov" style="font-size:18px;margin-top:6px;"></p>'+
+        '<label class="fld" style="margin-top:10px;display:block;">'+(lang==='id'?'Tingkat kepercayaan: ':'Confidence level: ')+'<b id="ci-conf">95%</b></label>'+
+        '<input type="range" id="ci-r" min="80" max="99" value="95" step="1" oninput="(window.__ci_u&&window.__ci_u())"/>'+
+        '<div class="btn-row" style="margin-top:10px;"><button class="btn" id="ci-new">'+(lang==='id'?'🎲 Ambil 20 sampel baru':'🎲 Draw 20 new samples')+'</button></div>'+
+        '<div class="feedback" id="ci-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#ci-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('ci-after').style.display='block';
+      document.getElementById('ci-fb').innerHTML=(lang==='id'
+        ?'Biasanya <b>sekitar 19 dari 20</b> memuat μ. Itulah arti “95%”: bukan peluang nilai sejati ada di <i>satu</i> selang tertentu, melainkan bahwa <b>prosedurnya</b> menangkap nilai sejati pada ~95% pengulangan jangka panjang. Turunkan tingkat kepercayaan: selang menyempit tapi makin sering meleset.'
+        :'Usually <b>about 19 of 20</b> contain μ. That is what “95%” means: not the chance the true value lies in <i>one</i> particular interval, but that the <b>procedure</b> captures the true value in ~95% of long-run repeats. Lower the confidence level: intervals get narrower but miss more often.');
+      draw(); reveal();
+    };});
+    setTimeout(function(){var nb=document.getElementById('ci-new');if(nb)nb.onclick=function(){seed=Math.floor(Math.random()*1e6);gen();draw();};},0);
+  },
+  concept:{
+    name:{id:'Selang kepercayaan', en:'Confidence interval'}, sub:{id:'Jerzy Neyman, 1937', en:'Jerzy Neyman, 1937'},
+    def:{id:'Rentang nilai yang dihasilkan oleh sebuah prosedur yang, jika diulang berkali-kali, akan memuat parameter sejati sebesar persentase kepercayaan yang ditetapkan (mis. 95%).', en:'A range produced by a procedure that, if repeated many times, would contain the true parameter for the stated confidence percentage (e.g. 95%).'},
+    formula:'CI = x̄ ± <span class="v">z*</span> · (σ / √n)',
+    theory:{id:'Kepercayaan melekat pada prosedur, bukan pada satu selang tertentu. Setelah selang dihitung, nilai sejati entah ada di dalamnya atau tidak — tidak ada lagi peluang “95%” untuk selang itu sendiri. Lebar selang dikendalikan oleh tiga hal: keragaman data (σ), ukuran sampel (n), dan tingkat kepercayaan (z*). Memperbesar kepercayaan memperlebar selang; memperbesar n mempersempitnya.', en:'The confidence attaches to the procedure, not to a single interval. Once an interval is computed, the true value either is inside it or is not — there is no longer a “95% chance” for that interval itself. The width is driven by three things: data spread (σ), sample size (n), and confidence level (z*). Raising confidence widens the interval; raising n narrows it.'},
+    practice:{id:'Selang kepercayaan jauh lebih informatif daripada sekadar “signifikan/tidak”, karena menunjukkan besar efek sekaligus ketidakpastiannya. Selang yang sangat lebar menandakan data belum cukup; selang sempit yang jauh dari nol menandakan bukti kuat. Hati-hati menafsirkan tumpang-tindih dua selang sebagai “tidak berbeda” — itu uji yang berbeda.', en:'A confidence interval is far more informative than a bare “significant or not”, because it shows both the effect size and its uncertainty. A very wide interval signals insufficient data; a narrow interval far from zero signals strong evidence. Be careful reading overlap between two intervals as “no difference” — that is a different test.'}
+  }
+});
+
+/* ---------- 6. A/B test ---------- */
+addConcept({
+  id:'abtest', icon:'🧪', color:'#7C3AED',
+  cat:{id:'Eksperimen', en:'Experiments'},
+  title:{id:'A/B Test', en:'A/B test'},
+  tag:{id:'Versi B unggul 12% vs 10% — tapi “lebih tinggi” belum tentu “beneran beda”. Tergantung jumlah data.', en:'Variant B leads 12% vs 10% — but “higher” is not yet “really different”. It depends on how much data you have.'},
+  hook:{id:'Versi B konversi 12%, versi A 10%, masing-masing dari 100 pengunjung. Sudah cukup bukti untuk menyatakan B lebih baik?', en:'Variant B converts at 12%, variant A at 10%, each from 100 visitors. Is that enough evidence to call B better?'},
+  build:function(host,lang,reveal){
+    var pA=0.10,pB=0.12;
+    function update(){
+      var n=Math.round(Math.pow(10,+document.getElementById('ab-r').value));
+      document.getElementById('ab-n').textContent=n.toLocaleString();
+      var pp=(pA+pB)/2, se=Math.sqrt(pp*(1-pp)*(2/n)), z=(pB-pA)/se, p=2*(1-normCdf(Math.abs(z)));
+      document.getElementById('ab-ca').textContent=Math.round(pA*n).toLocaleString()+' / '+n.toLocaleString();
+      document.getElementById('ab-cb').textContent=Math.round(pB*n).toLocaleString()+' / '+n.toLocaleString();
+      document.getElementById('ab-z').textContent=z.toFixed(2);
+      document.getElementById('ab-p').textContent=(p<0.001?'< 0.001':p.toFixed(3));
+      var sig=p<0.05, v=document.getElementById('ab-verd');
+      v.textContent=sig?(lang==='id'?'Signifikan — selisihnya kemungkinan nyata':'Significant — the gap is likely real'):(lang==='id'?'Belum signifikan — bisa jadi cuma kebetulan':'Not significant — could just be noise');
+      v.style.color=sig?'#16A34A':'#EF4444';
+    }
+    window.__ab_u=update;
+    var barRow=function(label,col){return '<div style="margin:6px 0;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;"><span>'+label+'</span><span style="color:'+col+'">'+(label==='A'?'10%':'12%')+'</span></div><div style="background:#F1F5F9;border-radius:6px;height:12px;margin-top:3px;"><div style="width:'+(label==='A'?60:72)+'%;height:12px;border-radius:6px;background:'+col+'"></div></div></div>';};
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="ab-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, ganti ke B':'Yes, switch to B')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Belum cukup':'Not enough')+'</button>'+
+      '</div>'+
+      '<div id="ab-after" style="display:none;margin-top:16px;">'+
+        barRow('A','#2563EB')+barRow('B','#7C3AED')+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:#64748B;margin-top:2px;"><span>A: <b id="ab-ca"></b></span><span>B: <b id="ab-cb"></b></span></div>'+
+        '<label class="fld" style="margin-top:12px;display:block;">'+(lang==='id'?'Pengunjung per versi: ':'Visitors per variant: ')+'<b id="ab-n">100</b></label>'+
+        '<input type="range" id="ab-r" min="1.7" max="4.7" value="2" step="0.01" oninput="(window.__ab_u&&window.__ab_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#F1F5F9;border-radius:10px;padding:11px;"><div class="readout">skor-z</div><div class="big" id="ab-z" style="font-size:22px;">0.45</div></div>'+
+          '<div style="background:#F1F5F9;border-radius:10px;padding:11px;"><div class="readout">p-value</div><div class="big" id="ab-p" style="font-size:22px;">0.651</div></div>'+
+        '</div>'+
+        '<div style="font-weight:800;font-size:14px;margin-top:8px;" id="ab-verd"></div>'+
+        '<div class="feedback" id="ab-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#ab-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('ab-after').style.display='block';
+      document.getElementById('ab-fb').innerHTML=(lang==='id'
+        ?'Dengan 100 pengunjung, <b>p ≈ 0.65</b> — selisih 12% vs 10% sangat mungkin hanya kebetulan. Geser ke kanan: selisih yang <i>sama persis</i> baru jadi signifikan di sekitar ~3.800 pengunjung per versi. Pelajarannya: angka konversi yang lebih tinggi tidak ada artinya tanpa cukup sampel.'
+        :'With 100 visitors, <b>p ≈ 0.65</b> — a 12% vs 10% gap could easily be chance. Slide right: the <i>exact same</i> gap only becomes significant at around ~3,800 visitors per variant. The lesson: a higher conversion number means nothing without enough sample.');
+      update(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'A/B test (uji dua proporsi)', en:'A/B test (two-proportion test)'}, sub:{id:'Akar dari eksperimen acak Fisher', en:'Rooted in Fisher’s randomized experiments'},
+    def:{id:'Eksperimen terkontrol yang membandingkan dua versi (A dan B) dengan membagi pengguna secara acak, lalu menguji apakah perbedaan hasilnya lebih besar daripada yang bisa muncul karena kebetulan.', en:'A controlled experiment comparing two versions (A and B) by randomly splitting users, then testing whether the difference in outcomes is larger than chance could produce.'},
+    formula:'z = (p̂_B − p̂_A) / √( <span class="v">p̂</span>(1−<span class="v">p̂</span>)(1/n_A + 1/n_B) )',
+    theory:{id:'Pengacakan memastikan kedua kelompok rata-rata setara, sehingga perbedaan hasil bisa dikaitkan ke perlakuan, bukan ke perancu. Ketidakpastian estimasi menyusut seperti 1/√n, jadi makin besar sampel makin kecil selisih yang bisa dideteksi. Skor-z mengubah selisih menjadi “berapa simpangan baku jauhnya dari nol”, lalu p-value menerjemahkannya jadi peluang kebetulan.', en:'Randomization makes the two groups equivalent on average, so any outcome difference can be attributed to the treatment rather than a confounder. Estimation uncertainty shrinks like 1/√n, so larger samples can detect smaller differences. The z-score converts the gap into “how many standard deviations from zero”, then the p-value translates that into a chance probability.'},
+    practice:{id:'Tetapkan ukuran sampel lewat power analysis sebelum mulai, dan jangan “mengintip” lalu berhenti begitu p < 0,05 (peeking menggelembungkan positif palsu). Waspadai efek kebaruan (lonjakan sementara karena hal baru), musiman, dan menjalankan terlalu banyak varian sekaligus. Signifikan secara statistik belum tentu berarti besar secara bisnis — selalu lihat ukuran efeknya.', en:'Fix the sample size via power analysis before starting, and do not “peek” and stop the moment p < 0.05 (peeking inflates false positives). Watch for novelty effects (temporary spikes from newness), seasonality, and running too many variants at once. Statistically significant is not necessarily business-meaningful — always look at the effect size.'}
+  }
+});
+
+/* ---------- 7. sampling bias ---------- */
+addConcept({
+  id:'sampbias', icon:'🎯', color:'#EA580C',
+  cat:{id:'Bias & ilusi', en:'Bias & illusion'},
+  title:{id:'Bias pengambilan sampel', en:'Sampling bias'},
+  tag:{id:'Kalau cara mengambil sampel pilih kasih, hasilnya salah — dan menambah data justru bikin makin yakin salah.', en:'If the way you sample is skewed, the result is wrong — and more data only makes you more confidently wrong.'},
+  hook:{id:'Sebuah survei online bertanya “berapa jam kamu online per hari?” dan menemukan rata-rata 8 jam. Apakah ini mewakili masyarakat umum?', en:'An online survey asks “how many hours are you online per day?” and finds an average of 8 hours. Does this represent the general public?'},
+  build:function(host,lang,reveal){
+    var rng=mulberry32(123), pop=[]; for(var i=0;i<400;i++){var u=1+8*Math.pow(rng(),2);pop.push(u);}
+    var trueMean=pop.reduce(function(a,b){return a+b;},0)/pop.length;
+    function draw(){
+      var bias=+document.getElementById('sb-r').value;
+      var ws=pop.map(function(u){return Math.pow(u,bias);}), sw=ws.reduce(function(a,b){return a+b;},0), maxw=Math.max.apply(null,ws);
+      var sMean=pop.reduce(function(a,u,i){return a+u*ws[i];},0)/sw;
+      var W=460,H=130,pad=22,lo=0,hi=10;
+      var X=function(u){return pad+(u-lo)/(hi-lo)*(W-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      pop.forEach(function(u,i){var y=30+((i*97)%70),op=(0.12+0.88*ws[i]/maxw).toFixed(2);
+        s+='<circle cx="'+X(u).toFixed(1)+'" cy="'+y+'" r="3" fill="#EA580C" opacity="'+op+'"/>';});
+      s+='<line x1="'+X(trueMean).toFixed(1)+'" y1="18" x2="'+X(trueMean).toFixed(1)+'" y2="'+(H-14)+'" stroke="#16A34A" stroke-width="2"/>';
+      s+='<line x1="'+X(sMean).toFixed(1)+'" y1="18" x2="'+X(sMean).toFixed(1)+'" y2="'+(H-14)+'" stroke="#2563EB" stroke-width="2" stroke-dasharray="4,3"/>';
+      s+='<text x="'+pad+'" y="'+(H-2)+'" font-size="9" fill="#94A3B8">0 jam</text><text x="'+(W-pad)+'" y="'+(H-2)+'" text-anchor="end" font-size="9" fill="#94A3B8">10 jam</text>';
+      s+='</svg>';
+      document.getElementById('sb-plot').innerHTML=s;
+      document.getElementById('sb-true').textContent=trueMean.toFixed(1)+(lang==='id'?' jam':' h');
+      document.getElementById('sb-samp').textContent=sMean.toFixed(1)+(lang==='id'?' jam':' h');
+    }
+    window.__sb_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="sb-guess">'+
+        '<button class="btn" data-v="yes">'+(lang==='id'?'Ya, sampelnya besar':'Yes, large sample')+'</button>'+
+        '<button class="btn" data-v="no">'+(lang==='id'?'Tidak, caranya bias':'No, the method is biased')+'</button>'+
+      '</div>'+
+      '<div id="sb-after" style="display:none;margin-top:16px;">'+
+        '<p class="readout" style="margin-bottom:6px;">'+(lang==='id'?'Tiap titik = satu orang (posisi = jam online). Pekat = makin besar peluangnya terpilih oleh survei online.':'Each dot = one person (position = hours online). Darker = more likely picked by an online survey.')+'</p>'+
+        '<div id="sb-plot"></div>'+
+        '<label class="fld" style="display:block;margin-top:6px;">'+(lang==='id'?'Kekuatan bias seleksi (survei lebih sering kena pengguna berat)':'Selection-bias strength (survey reaches heavy users more)')+'</label>'+
+        '<input type="range" id="sb-r" min="0" max="3" value="0" step="0.1" oninput="(window.__sb_u&&window.__sb_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#ECFDF5;border-radius:10px;padding:11px;"><div class="readout" style="color:#16A34A;">▮ Rata-rata sejati</div><div class="big" id="sb-true" style="font-size:22px;color:#16A34A;"></div></div>'+
+          '<div style="background:#EFF6FF;border-radius:10px;padding:11px;"><div class="readout" style="color:#2563EB;">▯ Rata-rata survei</div><div class="big" id="sb-samp" style="font-size:22px;color:#2563EB;"></div></div>'+
+        '</div>'+
+        '<div class="feedback" id="sb-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#sb-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('sb-after').style.display='block';
+      document.getElementById('sb-fb').innerHTML=(lang==='id'
+        ?'Geser kekuatan bias ke kanan: rata-rata survei (biru) menjauh dari rata-rata sejati (hijau), padahal jumlah orangnya sama. Survei online tidak pernah menjangkau mereka yang jarang online, jadi <b>kerangka sampelnya</b> sudah miring sejak awal. Menambah responden tidak menyembuhkan — error bias tidak mengecil seperti error acak.'
+        :'Slide the bias strength right: the survey average (blue) drifts away from the true average (green), even though the number of people is the same. An online survey never reaches people who are rarely online, so its <b>sampling frame</b> is skewed from the start. Adding respondents does not cure it — bias error does not shrink like random error.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Bias pengambilan sampel', en:'Sampling bias'}, sub:{id:'“Dewey Defeats Truman”, 1948', en:'“Dewey Defeats Truman”, 1948'},
+    def:{id:'Kesalahan sistematis yang terjadi ketika sampel dikumpulkan dengan cara yang membuat sebagian anggota populasi lebih mungkin terpilih daripada yang lain, sehingga sampel tidak mewakili populasi.', en:'A systematic error that occurs when a sample is collected in a way that makes some members of the population more likely to be selected than others, so the sample fails to represent the population.'},
+    formula:'E[estimasi] − nilai sejati = <span class="v">bias</span> ≠ 0   ( tetap walau n → ∞ )',
+    theory:{id:'Bedakan dua jenis error: error acak menyusut seperti 1/√n saat sampel diperbesar, tetapi error bias tidak — ia melekat pada cara pengambilan, bukan jumlahnya. Sampel besar yang bias hanya membuat estimasi yang salah terlihat lebih meyakinkan (selang kepercayaannya sempit tapi salah sasaran). Yang menentukan keterwakilan adalah kerangka sampel dan mekanisme seleksi, bukan ukuran.', en:'Distinguish two kinds of error: random error shrinks like 1/√n as the sample grows, but bias error does not — it is baked into how you sampled, not how much. A large biased sample just makes a wrong estimate look more convincing (its confidence interval is narrow but off-target). What determines representativeness is the sampling frame and selection mechanism, not the size.'},
+    practice:{id:'Bentuk umumnya: bias seleksi mandiri (hanya yang peduli mengisi survei), bias non-respons, dan survivorship bias. Contoh historis: jajak pendapat 1936 dan 1948 yang meleset karena kerangka sampelnya condong ke kelompok tertentu. Pertahanan terbaik adalah pengambilan acak dari kerangka yang menjangkau seluruh populasi, plus melacak siapa yang tidak terjangkau atau tidak menjawab.', en:'Common forms: self-selection bias (only those who care fill out the survey), non-response bias, and survivorship bias. Historical examples: the 1936 and 1948 polls that missed badly because their sampling frame leaned toward certain groups. The best defense is random sampling from a frame that reaches the whole population, plus tracking who was unreachable or did not respond.'}
+  }
+});
+
+/* ---------- 8. survivorship bias ---------- */
+addConcept({
+  id:'survivor', icon:'✈️', color:'#0F766E',
+  cat:{id:'Bias & ilusi', en:'Bias & illusion'},
+  title:{id:'Survivorship bias', en:'Survivorship bias'},
+  tag:{id:'Kita hanya melihat yang selamat, lalu menarik pelajaran dari mereka — dan melewatkan yang justru paling penting.', en:'We only see the survivors, then draw lessons from them — and miss the part that matters most.'},
+  hook:{id:'Pembom Perang Dunia II yang kembali penuh lubang peluru di sayap dan badan. Di bagian mana kamu memasang baja tambahan? (Klik area pesawat.)', en:'WWII bombers return riddled with bullet holes on the wings and fuselage. Where do you add extra armor? (Click a part of the plane.)'},
+  build:function(host,lang,reveal){
+    var answered=false;
+    var correct={cockpit:1,engine:1};
+    var zoneLbl={cockpit:{id:'Kokpit',en:'Cockpit'},engine:{id:'Mesin',en:'Engines'},wing:{id:'Sayap',en:'Wings'},body:{id:'Badan',en:'Fuselage'},tail:{id:'Ekor',en:'Tail'}};
+    function holes(){ var h='';var pts=[[55,108],[70,116],[40,100],[250,110],[235,118],[265,104],[150,70],[148,95],[152,120],[150,140],[150,160],[130,178],[170,182],[90,112],[210,108]];
+      pts.forEach(function(p){h+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.4" fill="#EF4444"/>';}); return h; }
+    function planeSVG(){
+      return '<svg viewBox="0 0 300 210" style="width:100%;max-width:430px;height:auto;">'+
+        '<rect x="138" y="40" width="24" height="130" rx="11" fill="#CBD5E1"/>'+
+        '<polygon points="150,18 162,46 138,46" fill="#CBD5E1"/>'+
+        '<rect x="20" y="98" width="260" height="22" rx="9" fill="#CBD5E1"/>'+
+        '<rect x="105" y="160" width="90" height="16" rx="7" fill="#CBD5E1"/>'+
+        '<circle cx="92" cy="109" r="11" fill="#94A3B8"/><circle cx="208" cy="109" r="11" fill="#94A3B8"/>'+
+        holes()+
+        '<g id="zones" font-family="Plus Jakarta Sans">'+
+        zone('cockpit',132,16,36,34)+
+        zone('engine',78,92,30,34)+zone('engine',196,92,30,34)+
+        zone('wing',22,98,56,22)+zone('wing',222,98,56,22)+
+        zone('body',136,52,28,108)+
+        zone('tail',108,160,84,18)+
+        '</g></svg>';
+    }
+    function zone(name,x,y,w,h){ return '<rect class="pz" data-z="'+name+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="4" fill="transparent" stroke="#64748B" stroke-width="1" stroke-dasharray="3,2" style="cursor:pointer;"/>'; }
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div id="sv-plot">'+planeSVG()+'</div>'+
+      '<p class="readout" id="sv-leg" style="margin-top:4px;">'+(lang==='id'?'🔴 lubang peluru · klik salah satu area bergaris putus-putus':'🔴 bullet holes · click one of the dashed areas')+'</p>'+
+      '<div class="feedback" id="sv-fb" style="display:block;"></div>';
+    document.getElementById('sv-fb').style.display='none';
+    var self=this;
+    host.querySelectorAll('.pz').forEach(function(z){ z.addEventListener('click',function(){
+      if(answered) return; answered=true;
+      var pick=z.dataset.z, good=!!correct[pick];
+      host.querySelectorAll('.pz').forEach(function(zz){ if(correct[zz.dataset.z]){zz.setAttribute('stroke','#16A34A');zz.setAttribute('stroke-width','2.5');zz.setAttribute('stroke-dasharray','');zz.setAttribute('fill','rgba(22,163,74,0.12)');} });
+      var fb=document.getElementById('sv-fb'); fb.style.display='block';
+      fb.innerHTML=(good
+        ?(lang==='id'?'<b>Tepat — dan ini berlawanan dengan intuisi.</b> ':'<b>Correct — and it is counterintuitive.</b> ')
+        :(lang==='id'?'<b>Pilihan paling umum, tapi keliru.</b> Kamu memilih '+L(zoneLbl[pick])+', area yang penuh lubang. ':'<b>The most common choice, but wrong.</b> You picked the '+L(zoneLbl[pick])+', the area full of holes. '))+
+        (lang==='id'
+        ?'Baja seharusnya dipasang di <b>mesin dan kokpit</b> (hijau) — justru area yang <i>tidak</i> ada lubangnya. Alasannya: kita hanya melihat pesawat yang <b>kembali</b>. Pesawat yang tertembak di mesin/kokpit jatuh dan tak pernah terdata. Lubang yang terlihat menandai tempat pesawat <i>bisa</i> bertahan, bukan tempat yang rawan.'
+        :'Armor belongs on the <b>engines and cockpit</b> (green) — exactly the areas with <i>no</i> holes. The reason: we only see planes that <b>returned</b>. Planes hit in the engine/cockpit went down and were never recorded. The visible holes mark where a plane <i>can</i> survive being hit, not where it is vulnerable.');
+      reveal();
+    });});
+  },
+  concept:{
+    name:{id:'Survivorship bias', en:'Survivorship bias'}, sub:{id:'Abraham Wald, 1943', en:'Abraham Wald, 1943'},
+    def:{id:'Kekeliruan menarik kesimpulan hanya dari kasus yang “selamat” melewati suatu proses seleksi, sambil mengabaikan kasus yang gagal dan tidak lagi terlihat dalam data.', en:'The error of drawing conclusions only from cases that “survived” a selection process, while ignoring the cases that failed and are no longer visible in the data.'},
+    formula:'kita mengamati P( X | selamat ),  bukan  P( X )',
+    theory:{id:'Seleksi diam-diam menyaring data sebelum kita melihatnya, sehingga sampel yang tersisa terkondisikan pada “berhasil/selamat”. Statistik dari kelompok penyintas menjawab pertanyaan yang berbeda dari yang kita kira. Memperbaikinya menuntut kita memodelkan secara eksplisit data yang hilang — persis langkah jenius Wald: menyimpulkan letak titik fatal dari ketiadaan lubang pada pesawat yang kembali.', en:'Selection silently filters the data before we ever see it, so the remaining sample is conditioned on “success/survival”. Statistics from the survivor group answer a different question than the one we think we are asking. Fixing it requires explicitly modeling the missing data — exactly Wald’s insight: inferring the location of fatal hits from the absence of holes on returning planes.'},
+    practice:{id:'Pola ini ada di mana-mana: “rahasia sukses” dari miliarder yang DO kuliah (yang gagal tidak diwawancarai), reksa dana berkinerja tinggi (yang bangkrut hilang dari daftar), atau bangunan tua yang “dibangun lebih kokoh” (yang rapuh sudah runtuh). Selalu tanyakan: “data siapa yang hilang dari sini, dan apakah kehilangannya tidak acak?”', en:'The pattern is everywhere: “secrets of success” from billionaire college dropouts (the failures are not interviewed), top-performing funds (the bankrupt ones drop off the list), or old buildings that were “built tougher” (the flimsy ones already collapsed). Always ask: “whose data is missing here, and is that absence non-random?”'}
+  }
+});
+
+/* ---------- 9. regresi linier ---------- */
+addConcept({
+  id:'linreg', icon:'📈', color:'#2563EB',
+  cat:{id:'Model & prediksi', en:'Models & prediction'},
+  title:{id:'Regresi linier', en:'Linear regression'},
+  tag:{id:'Menarik satu garis lurus “paling pas” menembus titik-titik data — tapi apa arti “paling pas”?', en:'Drawing the one “best-fit” straight line through the data points — but what does “best fit” mean?'},
+  hook:{id:'Titik-titik = jam belajar vs nilai ujian. Geser kemiringan dan posisi garis sampai menurutmu paling pas, lalu bandingkan dengan garis terbaik matematis (OLS).', en:'The dots = hours studied vs exam score. Slide the slope and position until you think the line fits best, then compare with the mathematical best-fit line (OLS).'},
+  build:function(host,lang,reveal){
+    var pts=[[1,55],[2,61],[3,62],[4,70],[5,68],[6,78],[7,80],[8,85],[9,84],[10,93]];
+    var n=pts.length, xb=0,yb=0; pts.forEach(function(p){xb+=p[0];yb+=p[1];}); xb/=n; yb/=n;
+    var Sxy=0,Sxx=0,Syy=0; pts.forEach(function(p){Sxy+=(p[0]-xb)*(p[1]-yb);Sxx+=(p[0]-xb)*(p[0]-xb);Syy+=(p[1]-yb)*(p[1]-yb);});
+    var mOLS=Sxy/Sxx, bOLS=yb-mOLS*xb;
+    function sse(m,b){var s=0;pts.forEach(function(p){var e=p[1]-(m*p[0]+b);s+=e*e;});return s;}
+    function draw(){
+      var m=+document.getElementById('lr-m').value, b=+document.getElementById('lr-b').value;
+      document.getElementById('lr-mv').textContent=m.toFixed(1); document.getElementById('lr-bv').textContent=b.toFixed(0);
+      var W=460,H=240,pad=30,xlo=0,xhi=11,ylo=48,yhi=98;
+      var X=function(x){return pad+(x-xlo)/(xhi-xlo)*(W-2*pad);}, Y=function(y){return H-pad-(y-ylo)/(yhi-ylo)*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<line x1="'+pad+'" y1="'+(H-pad)+'" x2="'+(W-pad)+'" y2="'+(H-pad)+'" stroke="#CBD5E1"/>';
+      s+='<text x="'+(W-pad)+'" y="'+(H-10)+'" text-anchor="end" font-size="9" fill="#94A3B8">'+(lang==='id'?'jam belajar':'hours studied')+'</text>';
+      pts.forEach(function(p){var yh=m*p[0]+b; s+='<line x1="'+X(p[0]).toFixed(1)+'" y1="'+Y(p[1]).toFixed(1)+'" x2="'+X(p[0]).toFixed(1)+'" y2="'+Y(yh).toFixed(1)+'" stroke="#F59E0B" stroke-width="1.2" opacity="0.65"/>';});
+      var x1=xlo+0.3,x2=xhi-0.3;
+      s+='<line x1="'+X(x1).toFixed(1)+'" y1="'+Y(m*x1+b).toFixed(1)+'" x2="'+X(x2).toFixed(1)+'" y2="'+Y(m*x2+b).toFixed(1)+'" stroke="#2563EB" stroke-width="2.4"/>';
+      pts.forEach(function(p){s+='<circle cx="'+X(p[0]).toFixed(1)+'" cy="'+Y(p[1]).toFixed(1)+'" r="4.5" fill="#0F172A"/>';});
+      s+='</svg>';
+      document.getElementById('lr-plot').innerHTML=s;
+      var S=sse(m,b), r2=1-S/Syy;
+      document.getElementById('lr-sse').textContent=S.toFixed(0);
+      document.getElementById('lr-r2').textContent=(r2>0?r2.toFixed(2):'0.00');
+    }
+    window.__lr_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div id="lr-plot"></div>'+
+      '<p class="readout" style="margin:2px 0 8px;">'+(lang==='id'?'Garis kuning = selisih (error) tiap titik ke garis. Tujuan: perkecil jumlah error kuadrat.':'Yellow lines = each point’s error to the line. Goal: minimize the sum of squared errors.')+'</p>'+
+      '<label class="fld">'+(lang==='id'?'Kemiringan: ':'Slope: ')+'<b id="lr-mv">1.0</b></label>'+
+      '<input type="range" id="lr-m" min="0" max="6" value="1" step="0.1" oninput="(window.__lr_u&&window.__lr_u())"/>'+
+      '<label class="fld" style="margin-top:6px;display:block;">'+(lang==='id'?'Titik potong: ':'Intercept: ')+'<b id="lr-bv">60</b></label>'+
+      '<input type="range" id="lr-b" min="40" max="70" value="60" step="0.5" oninput="(window.__lr_u&&window.__lr_u())"/>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">'+
+        '<div style="background:#FEF3C7;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Jumlah error kuadrat (SSE)':'Sum of squared errors (SSE)')+'</div><div class="big" id="lr-sse" style="font-size:22px;">—</div></div>'+
+        '<div style="background:#EFF6FF;border-radius:10px;padding:11px;"><div class="readout">R² '+(lang==='id'?'(kecocokan)':'(fit)')+'</div><div class="big" id="lr-r2" style="font-size:22px;color:#2563EB;">—</div></div>'+
+      '</div>'+
+      '<div class="btn-row" style="margin-top:12px;"><button class="btn primary" id="lr-ols">'+(lang==='id'?'Bandingkan dengan garis terbaik (OLS)':'Compare with best-fit line (OLS)')+'</button></div>'+
+      '<div class="feedback" id="lr-fb" style="display:block;"></div>';
+    document.getElementById('lr-fb').style.display='none';
+    draw();
+    document.getElementById('lr-ols').onclick=function(){
+      var userS=sse(+document.getElementById('lr-m').value,+document.getElementById('lr-b').value);
+      document.getElementById('lr-m').value=mOLS.toFixed(2); document.getElementById('lr-b').value=bOLS.toFixed(2); draw();
+      var fb=document.getElementById('lr-fb'); fb.style.display='block';
+      fb.innerHTML=(lang==='id'
+        ?'Garis terbaik OLS: kemiringan <b>'+mOLS.toFixed(1)+'</b>, titik potong <b>'+bOLS.toFixed(0)+'</b>. SSE tebakanmu <b>'+userS.toFixed(0)+'</b> → SSE terbaik <b>'+sse(mOLS,bOLS).toFixed(0)+'</b>. Tidak ada garis lurus lain yang bisa mengalahkan SSE ini — itulah arti “paling pas”. Kemiringan '+mOLS.toFixed(1)+' berarti tiap +1 jam belajar dikaitkan dengan +'+mOLS.toFixed(1)+' poin nilai.'
+        :'OLS best-fit line: slope <b>'+mOLS.toFixed(1)+'</b>, intercept <b>'+bOLS.toFixed(0)+'</b>. Your SSE <b>'+userS.toFixed(0)+'</b> → best SSE <b>'+sse(mOLS,bOLS).toFixed(0)+'</b>. No other straight line can beat this SSE — that is what “best fit” means. A slope of '+mOLS.toFixed(1)+' means each +1 hour of study is associated with +'+mOLS.toFixed(1)+' score points.');
+      reveal();
+    };
+  },
+  concept:{
+    name:{id:'Regresi linier (kuadrat terkecil)', en:'Linear regression (least squares)'}, sub:{id:'Legendre & Gauss, ~1805', en:'Legendre & Gauss, ~1805'},
+    def:{id:'Metode untuk memodelkan hubungan antara sebuah variabel hasil dan satu/lebih prediktor sebagai garis lurus, dengan memilih garis yang meminimalkan jumlah kuadrat selisih vertikal (error) antara titik data dan garis.', en:'A method for modeling the relationship between an outcome and one or more predictors as a straight line, choosing the line that minimizes the sum of squared vertical differences (errors) between the data points and the line.'},
+    formula:'ŷ = <span class="v">β₀</span> + <span class="v">β₁</span>x   ·   β₁ = Σ(xᵢ−x̄)(yᵢ−ȳ) / Σ(xᵢ−x̄)²',
+    theory:{id:'Mengapa kuadrat, bukan nilai mutlak? Mengkuadratkan error menghukum simpangan besar lebih keras, menghasilkan solusi tunggal yang mulus dan bisa dihitung dengan rumus tertutup (tidak perlu coba-coba). Garis OLS selalu melewati titik rata-rata (x̄, ȳ), dan R² menyatakan proporsi keragaman y yang dijelaskan model. Asumsinya penting: hubungan kira-kira linier, error acak dan ragamnya seragam.', en:'Why squares, not absolute values? Squaring penalizes large deviations more harshly, yielding a single smooth solution computable with a closed-form formula (no trial and error). The OLS line always passes through the mean point (x̄, ȳ), and R² states the proportion of variation in y explained by the model. The assumptions matter: roughly linear relationship, random errors with constant variance.'},
+    practice:{id:'Regresi linier adalah kuda beban analisis data: memperkirakan harga rumah, tren penjualan, dosis–respons. Tapi hati-hati: kemiringan menunjukkan asosiasi, bukan otomatis sebab-akibat; ekstrapolasi jauh di luar rentang data berbahaya; dan satu pencilan bisa menarik garis secara berlebihan. Selalu plot datanya dulu — angka R² tinggi pun bisa menyesatkan kalau polanya sebenarnya melengkung.', en:'Linear regression is the workhorse of data analysis: estimating house prices, sales trends, dose–response. But beware: the slope shows association, not automatically causation; extrapolating far beyond the data range is dangerous; and a single outlier can drag the line too much. Always plot the data first — even a high R² can mislead if the true pattern is curved.'}
+  }
+});
+
 /* ============================ rendering ============================ */
 var activeCat='__all', activeId=null;
 
