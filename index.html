@@ -785,6 +785,263 @@ addConcept({
   }
 });
 
+/* ---------- 10. uji hipotesis ---------- */
+addConcept({
+  id:'hyptest', icon:'⚖️', color:'#9333EA',
+  cat:{id:'Inferensi', en:'Inference'},
+  title:{id:'Uji hipotesis', en:'Hypothesis testing'},
+  tag:{id:'Memperketat standar bukti mengurangi satu jenis kesalahan — tapi diam-diam memperbesar yang lain.', en:'Tightening the standard of evidence reduces one kind of error — but quietly inflates the other.'},
+  hook:{id:'Pengadilan menganggap terdakwa tak bersalah (H₀) sampai terbukti. Kalau kita perketat standar agar nyaris tak pernah menghukum orang tak bersalah, apa konsekuensinya?', en:'A court treats the defendant as not guilty (H₀) until proven otherwise. If we tighten the standard so we almost never convict an innocent person, what is the consequence?'},
+  build:function(host,lang,reveal){
+    var d=3;
+    function pdf(x,mu){return Math.exp(-0.5*(x-mu)*(x-mu))/Math.sqrt(2*Math.PI);}
+    function draw(){
+      var c=+document.getElementById('ht-r').value;
+      var a=1-normCdf(c), b=normCdf(c-d), power=1-b;
+      var W=460,H=200,pad=26,xlo=-4,xhi=7;
+      var X=function(x){return pad+(x-xlo)/(xhi-xlo)*(W-2*pad);}, Y=function(p){return H-pad-(p/0.42)*(H-2*pad);};
+      function area(mu,from,to,col){var s='<path d="M'+X(from).toFixed(1)+' '+Y(0).toFixed(1);for(var x=from;x<=to+1e-9;x+=0.1){s+=' L'+X(x).toFixed(1)+' '+Y(pdf(x,mu)).toFixed(1);}s+=' L'+X(to).toFixed(1)+' '+Y(0).toFixed(1)+' Z" fill="'+col+'" opacity="0.55"/>';return s;}
+      function curve(mu,col){var s='<path d="';for(var x=xlo,first=true;x<=xhi+1e-9;x+=0.1){s+=(first?'M':'L')+X(x).toFixed(1)+' '+Y(pdf(x,mu)).toFixed(1)+' ';first=false;}return s+'" fill="none" stroke="'+col+'" stroke-width="2"/>';}
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+=area(0,c,xhi,'#EF4444')+area(d,xlo,c,'#F59E0B');
+      s+=curve(0,'#2563EB')+curve(d,'#16A34A');
+      s+='<line x1="'+X(c).toFixed(1)+'" y1="14" x2="'+X(c).toFixed(1)+'" y2="'+(H-pad)+'" stroke="#0F172A" stroke-width="1.6" stroke-dasharray="4,3"/>';
+      s+='<text x="'+X(0).toFixed(1)+'" y="26" text-anchor="middle" font-size="9" fill="#2563EB" font-weight="800">H₀</text>';
+      s+='<text x="'+X(d).toFixed(1)+'" y="26" text-anchor="middle" font-size="9" fill="#16A34A" font-weight="800">H₁</text>';
+      s+='</svg>';
+      document.getElementById('ht-plot').innerHTML=s;
+      document.getElementById('ht-a').textContent=(a*100).toFixed(1)+'%';
+      document.getElementById('ht-b').textContent=(b*100).toFixed(1)+'%';
+      document.getElementById('ht-pw').textContent=(power*100).toFixed(0)+'%';
+    }
+    window.__ht_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="ht-guess">'+
+        '<button class="btn" data-v="tradeoff">'+(lang==='id'?'Lebih banyak yang bersalah lolos':'More guilty go free')+'</button>'+
+        '<button class="btn" data-v="free">'+(lang==='id'?'Tidak ada efek samping':'No side effect')+'</button>'+
+      '</div>'+
+      '<div id="ht-after" style="display:none;margin-top:16px;">'+
+        '<p class="readout" style="margin-bottom:6px;">'+(lang==='id'?'Biru = dunia tanpa efek (H₀), hijau = dunia ada efek (H₁). Garis = ambang “cukup bukti”.':'Blue = world with no effect (H₀), green = world with an effect (H₁). Line = the “enough evidence” threshold.')+'</p>'+
+        '<div id="ht-plot"></div>'+
+        '<label class="fld" style="display:block;margin-top:4px;">'+(lang==='id'?'Ambang bukti (geser kanan = makin ketat menghukum)':'Evidence threshold (slide right = stricter to convict)')+'</label>'+
+        '<input type="range" id="ht-r" min="-1" max="5" value="1.645" step="0.05" oninput="(window.__ht_u&&window.__ht_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">'+
+          '<div style="background:#FEF2F2;border-radius:10px;padding:10px;"><div class="readout" style="color:#EF4444;">α · positif palsu</div><div class="big" id="ht-a" style="font-size:20px;color:#EF4444;"></div></div>'+
+          '<div style="background:#FFFBEB;border-radius:10px;padding:10px;"><div class="readout" style="color:#B45309;">β · negatif palsu</div><div class="big" id="ht-b" style="font-size:20px;color:#B45309;"></div></div>'+
+          '<div style="background:#ECFDF5;border-radius:10px;padding:10px;"><div class="readout" style="color:#16A34A;">power</div><div class="big" id="ht-pw" style="font-size:20px;color:#16A34A;"></div></div>'+
+        '</div>'+
+        '<div class="feedback" id="ht-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#ht-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('ht-after').style.display='block';
+      document.getElementById('ht-fb').innerHTML=(lang==='id'
+        ?'Geser ambang ke kanan: <b>α</b> (menghukum orang tak bersalah) mengecil, tapi <b>β</b> (membiarkan yang bersalah lolos) membesar. Kedua kesalahan ini saling tukar — menekan satu menaikkan yang lain. Satu-satunya cara memperkecil keduanya sekaligus adalah menambah bukti/data (memperjauh kedua kurva).'
+        :'Slide the threshold right: <b>α</b> (convicting the innocent) shrinks, but <b>β</b> (letting the guilty go) grows. These two errors trade off — pushing one down pushes the other up. The only way to lower both at once is to gather more evidence/data (separating the two curves further).');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Uji hipotesis', en:'Hypothesis testing'}, sub:{id:'Neyman & Pearson, 1933', en:'Neyman & Pearson, 1933'},
+    def:{id:'Kerangka pengambilan keputusan untuk memilih antara hipotesis nol (tidak ada efek) dan hipotesis alternatif, dengan menetapkan aturan yang mengendalikan peluang dua jenis kesalahan.', en:'A decision framework for choosing between a null hypothesis (no effect) and an alternative, by setting a rule that controls the probability of two kinds of error.'},
+    formula:'Tipe I = <span class="v">α</span> = P(tolak H₀ | H₀ benar)<br>Tipe II = <span class="v">β</span> = P(gagal tolak H₀ | H₁ benar) · power = 1−β',
+    theory:{id:'Asimetri itu disengaja: kita melindungi H₀ (status quo) dan hanya menolaknya bila bukti melewati ambang α yang kecil — seperti “tak bersalah sampai terbukti”. Menurunkan α membuat kita lebih jarang salah menolak H₀, tetapi otomatis menaikkan β (lebih sering melewatkan efek yang nyata). Power, kemampuan mendeteksi efek yang benar-benar ada, naik bila efeknya besar, ragam kecil, atau sampel besar.', en:'The asymmetry is deliberate: we protect H₀ (the status quo) and only reject it when evidence crosses a small threshold α — like “innocent until proven guilty”. Lowering α makes us less likely to wrongly reject H₀, but automatically raises β (more often missing a real effect). Power, the ability to detect an effect that truly exists, increases when the effect is large, variance is small, or the sample is large.'},
+    practice:{id:'Pilih α berdasarkan biaya kesalahan: dalam pengujian obat, positif palsu (meluluskan obat tak berkhasiat) bisa lebih berbahaya daripada negatif palsu, atau sebaliknya. Lakukan power analysis sebelum eksperimen agar sampelnya cukup untuk mendeteksi efek yang berarti. Dan ingat: “gagal menolak H₀” bukan berarti “H₀ terbukti benar” — bisa jadi datanya hanya kurang kuat.', en:'Choose α based on the cost of errors: in drug testing, a false positive (approving an ineffective drug) may be worse than a false negative, or vice versa. Run a power analysis before the experiment so the sample is large enough to detect a meaningful effect. And remember: “failing to reject H₀” does not mean “H₀ is proven true” — the data may simply be too weak.'}
+  }
+});
+
+/* ---------- 11. distribusi diskrit ---------- */
+addConcept({
+  id:'discdist', icon:'🎲', color:'#0891B2',
+  cat:{id:'Probabilitas', en:'Probability'},
+  title:{id:'Distribusi diskrit', en:'Discrete distribution'},
+  tag:{id:'Hasil yang bisa dihitung satu per satu — dan kenapa angka 7 begitu istimewa pada sepasang dadu.', en:'Outcomes you can count one by one — and why 7 is so special on a pair of dice.'},
+  hook:{id:'Kamu melempar dua dadu dan menjumlahkannya (2 sampai 12). Angka berapa yang paling sering muncul?', en:'You roll two dice and add them (2 to 12). Which total comes up most often?'},
+  build:function(host,lang,reveal){
+    function pmf(nd){var dist={0:1};for(var dd=0;dd<nd;dd++){var nx={};for(var s in dist){for(var f=1;f<=6;f++){var k=(+s)+f;nx[k]=(nx[k]||0)+dist[s]/6;}}dist=nx;}return dist;}
+    function draw(){
+      var nd=+document.getElementById('dd-r').value, dist=pmf(nd);
+      var keys=Object.keys(dist).map(Number).sort(function(a,b){return a-b;});
+      var maxp=Math.max.apply(null,keys.map(function(k){return dist[k];}));
+      var mode=keys.reduce(function(m,k){return dist[k]>dist[m]?k:m;},keys[0]);
+      var W=460,H=190,pad=26,bw=(W-2*pad)/keys.length;
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      keys.forEach(function(k,i){var h=dist[k]/maxp*(H-2*pad-8),x=pad+i*bw,y=H-pad-h,col=(k===mode?'#0891B2':'#A5DEEC');
+        s+='<rect x="'+(x+1).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw-2).toFixed(1)+'" height="'+Math.max(0.5,h).toFixed(1)+'" rx="1.5" fill="'+col+'"/>';
+        if(keys.length<=13)s+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-pad+11)+'" text-anchor="middle" font-size="9" fill="#94A3B8">'+k+'</text>';});
+      s+='</svg>';
+      document.getElementById('dd-plot').innerHTML=s;
+      document.getElementById('dd-mode').textContent=mode+' ('+(dist[mode]*100).toFixed(1)+'%)';
+      document.getElementById('dd-nd').textContent=nd;
+    }
+    window.__dd_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="dd-guess">'+
+        '<button class="btn" data-v="2">2</button><button class="btn" data-v="7">7</button><button class="btn" data-v="12">12</button>'+
+      '</div>'+
+      '<div id="dd-after" style="display:none;margin-top:16px;">'+
+        '<div id="dd-plot"></div>'+
+        '<label class="fld" style="display:block;margin-top:6px;">'+(lang==='id'?'Jumlah dadu: ':'Number of dice: ')+'<b id="dd-nd">2</b></label>'+
+        '<input type="range" id="dd-r" min="1" max="6" value="2" step="1" oninput="(window.__dd_u&&window.__dd_u())"/>'+
+        '<p class="readout" style="margin-top:8px;">'+(lang==='id'?'Jumlah paling mungkin (modus): ':'Most likely total (mode): ')+'<b id="dd-mode" style="color:#0891B2;"></b></p>'+
+        '<div class="feedback" id="dd-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#dd-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('dd-after').style.display='block';
+      document.getElementById('dd-fb').innerHTML=(b.dataset.v==='7'
+        ?(lang==='id'?'<b>Tepat — 7.</b> ':'<b>Right — 7.</b> ')
+        :(lang==='id'?'<b>Bukan '+b.dataset.v+'.</b> Jawabannya 7. ':'<b>Not '+b.dataset.v+'.</b> The answer is 7. '))+
+        (lang==='id'
+        ?'Ada 6 cara membuat 7 (1+6, 2+5, …) tapi cuma 1 cara membuat 2 atau 12. Karena hasilnya bisa dihitung satu-satu, tiap nilai punya peluang tersendiri (batang terpisah). Geser jumlah dadu: makin banyak dadu, bentuknya makin menyerupai lonceng — cikal bakal teorema limit pusat.'
+        :'There are 6 ways to make 7 (1+6, 2+5, …) but only 1 way to make 2 or 12. Because outcomes are countable, each value has its own probability (separate bars). Slide the number of dice: with more dice the shape approaches a bell — a preview of the central limit theorem.');
+      document.getElementById('dd-r').value='2'; draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Distribusi probabilitas diskrit', en:'Discrete probability distribution'}, sub:{id:'mis. Bernoulli, Binomial, Poisson', en:'e.g. Bernoulli, Binomial, Poisson'},
+    def:{id:'Distribusi untuk variabel acak yang nilainya dapat dihitung (terpisah-pisah), di mana setiap nilai yang mungkin memiliki probabilitas tersendiri dan jumlah seluruh probabilitas sama dengan 1.', en:'A distribution for a random variable whose values are countable (separate), where each possible value carries its own probability and all probabilities sum to 1.'},
+    formula:'P(X = k) = p(k),   Σ p(k) = 1,   E[X] = Σ k·p(k)',
+    theory:{id:'Pada variabel diskrit, probabilitas menempel pada titik-titik tertentu, sehingga digambarkan sebagai batang, bukan kurva mulus. Bentuk distribusi muncul dari banyaknya “cara” suatu hasil dapat terjadi — itulah mengapa jumlah dua dadu memuncak di tengah. Saat banyak variabel acak independen dijumlahkan, distribusinya cenderung menuju bentuk lonceng (normal), apa pun bentuk awalnya.', en:'For a discrete variable, probability sits on specific points, so it is drawn as bars rather than a smooth curve. The shape of the distribution comes from how many “ways” an outcome can occur — which is why the sum of two dice peaks in the middle. When many independent random variables are added, their distribution tends toward a bell (normal) shape, whatever the starting shape.'},
+    practice:{id:'Distribusi diskrit memodelkan hal-hal yang dihitung: jumlah klik, kedatangan pelanggan per jam (Poisson), banyaknya cacat, atau lolos/gagal (Bernoulli/Binomial). Memahami sebarannya membantu menilai apakah suatu hasil “wajar” atau mengejutkan. Hati-hati menyamakan “rata-rata” dengan “paling mungkin” — pada distribusi yang miring keduanya bisa berbeda.', en:'Discrete distributions model things you count: number of clicks, customer arrivals per hour (Poisson), defect counts, or pass/fail (Bernoulli/Binomial). Understanding the spread helps judge whether an outcome is “normal” or surprising. Be careful equating “average” with “most likely” — on a skewed distribution they can differ.'}
+  }
+});
+
+/* ---------- 12. distribusi kontinu ---------- */
+addConcept({
+  id:'contdist', icon:'🔔', color:'#16A34A',
+  cat:{id:'Probabilitas', en:'Probability'},
+  title:{id:'Distribusi kontinu', en:'Continuous distribution'},
+  tag:{id:'Peluang tinggi badan TEPAT 170,000… cm? Nol. Yang punya peluang hanyalah rentang.', en:'The probability of a height of EXACTLY 170.000… cm? Zero. Only ranges carry probability.'},
+  hook:{id:'Tinggi badan tersebar normal dengan rata-rata 170 cm. Berapa peluang seseorang tingginya tepat 170 cm (sampai tak hingga desimal)?', en:'Heights are normally distributed with mean 170 cm. What is the probability someone is exactly 170 cm (to infinite decimals)?'},
+  build:function(host,lang,reveal){
+    var mu=170;
+    function pdf(x,sd){return Math.exp(-0.5*Math.pow((x-mu)/sd,2))/(sd*Math.sqrt(2*Math.PI));}
+    function draw(){
+      var sd=+document.getElementById('cd-sd').value, a=+document.getElementById('cd-a').value, b=+document.getElementById('cd-b').value;
+      if(a>b){var tmp=a;a=b;b=tmp;}
+      document.getElementById('cd-sdv').textContent=sd; document.getElementById('cd-av').textContent=a; document.getElementById('cd-bv').textContent=b;
+      var W=460,H=200,pad=26,xlo=140,xhi=200, mp=pdf(mu,sd);
+      var X=function(x){return pad+(x-xlo)/(xhi-xlo)*(W-2*pad);}, Y=function(p){return H-pad-(p/(mp*1.1))*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      var area='M'+X(a).toFixed(1)+' '+Y(0).toFixed(1);for(var x=a;x<=b+1e-9;x+=0.5){area+=' L'+X(x).toFixed(1)+' '+Y(pdf(x,sd)).toFixed(1);}area+=' L'+X(b).toFixed(1)+' '+Y(0).toFixed(1)+' Z';
+      s+='<path d="'+area+'" fill="#16A34A" opacity="0.5"/>';
+      var cv='';for(var x2=xlo,f=true;x2<=xhi+1e-9;x2+=0.5){cv+=(f?'M':'L')+X(x2).toFixed(1)+' '+Y(pdf(x2,sd)).toFixed(1)+' ';f=false;}
+      s+='<path d="'+cv+'" fill="none" stroke="#16A34A" stroke-width="2"/>';
+      s+='<line x1="'+X(170).toFixed(1)+'" y1="'+Y(mp).toFixed(1)+'" x2="'+X(170).toFixed(1)+'" y2="'+Y(0).toFixed(1)+'" stroke="#94A3B8" stroke-dasharray="3,3"/>';
+      s+='<text x="'+pad+'" y="'+(H-8)+'" font-size="9" fill="#94A3B8">140</text><text x="'+(W-pad)+'" y="'+(H-8)+'" text-anchor="end" font-size="9" fill="#94A3B8">200 cm</text>';
+      s+='</svg>';
+      document.getElementById('cd-plot').innerHTML=s;
+      var P=normCdf((b-mu)/sd)-normCdf((a-mu)/sd);
+      document.getElementById('cd-p').textContent=(P*100).toFixed(1)+'%';
+    }
+    window.__cd_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="cd-guess">'+
+        '<button class="btn" data-v="5">'+(lang==='id'?'Sekitar 5%':'About 5%')+'</button>'+
+        '<button class="btn" data-v="0">'+(lang==='id'?'Hampir 0':'Almost 0')+'</button>'+
+        '<button class="btn" data-v="dep">'+(lang==='id'?'Tergantung':'It depends')+'</button>'+
+      '</div>'+
+      '<div id="cd-after" style="display:none;margin-top:16px;">'+
+        '<div id="cd-plot"></div>'+
+        '<p class="readout" style="margin:4px 0;">'+(lang==='id'?'Peluang hanya bermakna untuk <b>rentang</b> = luas area di bawah kurva.':'Probability is only meaningful for a <b>range</b> = the area under the curve.')+'</p>'+
+        '<label class="fld">'+(lang==='id'?'Batas bawah: ':'Lower: ')+'<b id="cd-av">165</b> cm</label>'+
+        '<input type="range" id="cd-a" min="140" max="200" value="165" step="1" oninput="(window.__cd_u&&window.__cd_u())"/>'+
+        '<label class="fld" style="display:block;margin-top:4px;">'+(lang==='id'?'Batas atas: ':'Upper: ')+'<b id="cd-bv">175</b> cm</label>'+
+        '<input type="range" id="cd-b" min="140" max="200" value="175" step="1" oninput="(window.__cd_u&&window.__cd_u())"/>'+
+        '<label class="fld" style="display:block;margin-top:4px;">'+(lang==='id'?'Simpangan baku: ':'Std dev: ')+'<b id="cd-sdv">7</b> cm</label>'+
+        '<input type="range" id="cd-sd" min="4" max="12" value="7" step="1" oninput="(window.__cd_u&&window.__cd_u())"/>'+
+        '<p class="big" id="cd-pwrap" style="font-size:20px;margin-top:8px;">P(rentang) = <span id="cd-p" style="color:#16A34A;">52%</span></p>'+
+        '<div class="feedback" id="cd-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#cd-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('cd-after').style.display='block';
+      document.getElementById('cd-fb').innerHTML=(b.dataset.v==='0'
+        ?(lang==='id'?'<b>Benar — hampir nol.</b> ':'<b>Correct — almost zero.</b> ')
+        :(lang==='id'?'<b>Mengejutkan, ya?</b> Jawabannya hampir nol. ':'<b>Surprising, right?</b> The answer is almost zero. '))+
+        (lang==='id'
+        ?'Pada variabel kontinu, ada tak hingga banyak nilai yang mungkin, sehingga peluang tepat satu titik = 0. Yang bermakna hanyalah peluang sebuah <i>rentang</i>, yaitu luas area di bawah kurva. Geser batas bawah dan atas untuk melihat peluang berubah; perlebar rentang → peluang naik. Itu sebabnya tinggi badan selalu dilaporkan sebagai “antara 168–172 cm”, bukan satu angka pasti.'
+        :'For a continuous variable there are infinitely many possible values, so the probability of any exact point = 0. Only the probability of a <i>range</i> is meaningful — the area under the curve. Slide the lower and upper bounds to watch it change; widen the range and the probability rises. That is why heights are always reported as “between 168–172 cm”, never one exact number.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Distribusi probabilitas kontinu', en:'Continuous probability distribution'}, sub:{id:'mis. Normal/Gauss, Eksponensial', en:'e.g. Normal/Gaussian, Exponential'},
+    def:{id:'Distribusi untuk variabel acak yang nilainya berkesinambungan (tak terhitung). Probabilitas dinyatakan sebagai luas di bawah kurva kepadatan (PDF), dan peluang pada satu titik tunggal selalu nol.', en:'A distribution for a random variable whose values form a continuum (uncountable). Probability is expressed as area under a density curve (PDF), and the probability at any single point is always zero.'},
+    formula:'P(a ≤ X ≤ b) = ∫ₐᵇ f(x) dx,   ∫ f(x) dx = 1,   P(X = x) = 0',
+    theory:{id:'Fungsi kepadatan f(x) bukan probabilitas itu sendiri — ia bisa bernilai lebih dari 1; yang merupakan probabilitas adalah luas (integral) di bawahnya pada suatu rentang. Tinggi kurva hanya menunjukkan kepadatan relatif. Distribusi normal istimewa karena teorema limit pusat: jumlah/rata-rata banyak pengaruh acak kecil cenderung berbentuk lonceng, dengan aturan praktis 68–95–99,7% untuk 1–2–3 simpangan baku.', en:'The density f(x) is not a probability itself — it can exceed 1; what is a probability is the area (integral) under it over a range. The height of the curve only shows relative density. The normal distribution is special because of the central limit theorem: sums/averages of many small random influences tend toward a bell shape, with the 68–95–99.7% rule of thumb for 1–2–3 standard deviations.'},
+    practice:{id:'Distribusi kontinu memodelkan besaran yang diukur: tinggi, berat, waktu, suhu, harga. Menghitung peluang berarti menghitung luas — mis. “berapa persen produk di luar toleransi?”. Hati-hati: tidak semua data berbentuk normal (pendapatan dan waktu tunggu sering miring), jadi jangan asal menempelkan kurva lonceng tanpa memeriksa bentuk datanya.', en:'Continuous distributions model measured quantities: height, weight, time, temperature, price. Computing a probability means computing an area — e.g. “what percent of products fall outside tolerance?”. Beware: not all data are normal (incomes and waiting times are often skewed), so do not slap a bell curve on data without checking its shape.'}
+  }
+});
+
+/* ---------- 13. regresi logistik ---------- */
+addConcept({
+  id:'logreg', icon:'📐', color:'#DB2777',
+  cat:{id:'Model & prediksi', en:'Models & prediction'},
+  title:{id:'Regresi logistik', en:'Logistic regression'},
+  tag:{id:'Saat hasilnya “ya/tidak”, garis lurus gagal — solusinya kurva-S yang memencet peluang ke 0–1.', en:'When the outcome is “yes/no”, a straight line fails — the fix is an S-curve that squeezes probability into 0–1.'},
+  hook:{id:'Jam belajar memprediksi lulus/tidak (0/1). Kalau kita pakai garis lurus biasa, peluang lulus bisa keluar dari 100% atau jadi negatif. Bagaimana solusinya?', en:'Hours studied predict pass/fail (0/1). With an ordinary straight line, the predicted probability can exceed 100% or go negative. What is the fix?'},
+  build:function(host,lang,reveal){
+    var data=[[1,0],[2,0],[3,0],[4,0],[4,1],[5,0],[5,1],[6,1],[7,0],[7,1],[8,1],[9,1],[10,1]];
+    var b0=-6, b1=1.2;
+    function sig(z){return 1/(1+Math.exp(-z));}
+    function p(x){return sig(b0+b1*x);}
+    function draw(){
+      var thr=+document.getElementById('lg-r').value;
+      document.getElementById('lg-tv').textContent=(thr*100).toFixed(0)+'%';
+      var bound=(Math.log(thr/(1-thr))-b0)/b1;
+      var W=460,H=220,pad=30,xlo=0,xhi=11;
+      var X=function(x){return pad+(x-xlo)/(xhi-xlo)*(W-2*pad);}, Y=function(pp){return H-pad-pp*(H-2*pad);};
+      var s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:480px;height:auto;">';
+      s+='<line x1="'+pad+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-pad)+'" y2="'+Y(0).toFixed(1)+'" stroke="#E2E8F0"/>';
+      s+='<line x1="'+pad+'" y1="'+Y(1).toFixed(1)+'" x2="'+(W-pad)+'" y2="'+Y(1).toFixed(1)+'" stroke="#E2E8F0"/>';
+      s+='<line x1="'+pad+'" y1="'+Y(thr).toFixed(1)+'" x2="'+(W-pad)+'" y2="'+Y(thr).toFixed(1)+'" stroke="#DB2777" stroke-dasharray="4,3"/>';
+      if(bound>xlo&&bound<xhi)s+='<line x1="'+X(bound).toFixed(1)+'" y1="'+pad+'" x2="'+X(bound).toFixed(1)+'" y2="'+(H-pad)+'" stroke="#0F172A" stroke-dasharray="2,2"/>';
+      var cv='';for(var x=xlo,f=true;x<=xhi+1e-9;x+=0.1){cv+=(f?'M':'L')+X(x).toFixed(1)+' '+Y(p(x)).toFixed(1)+' ';f=false;}
+      s+='<path d="'+cv+'" fill="none" stroke="#DB2777" stroke-width="2.4"/>';
+      var correct=0;
+      data.forEach(function(d){var pred=p(d[0])>=thr?1:0;if(pred===d[1])correct++;var col=d[1]?'#16A34A':'#EF4444';
+        s+='<circle cx="'+X(d[0]).toFixed(1)+'" cy="'+Y(d[1]).toFixed(1)+'" r="4.5" fill="'+col+'" opacity="0.8"/>';});
+      s+='<text x="'+(pad-4)+'" y="'+Y(1).toFixed(1)+'" text-anchor="end" font-size="9" fill="#94A3B8">lulus</text>';
+      s+='<text x="'+(pad-4)+'" y="'+Y(0).toFixed(1)+'" text-anchor="end" font-size="9" fill="#94A3B8">gagal</text>';
+      s+='<text x="'+(W-pad)+'" y="'+(H-8)+'" text-anchor="end" font-size="9" fill="#94A3B8">'+(lang==='id'?'jam belajar':'hours')+'</text>';
+      s+='</svg>';
+      document.getElementById('lg-plot').innerHTML=s;
+      document.getElementById('lg-bound').textContent=(bound>0?bound.toFixed(1):'0')+(lang==='id'?' jam':' h');
+      document.getElementById('lg-acc').textContent=(correct/data.length*100).toFixed(0)+'%';
+    }
+    window.__lg_u=draw;
+    host.innerHTML='<div class="scn"><div class="q">'+L(this.hook)+'</div></div>'+
+      '<div class="btn-row" id="lg-guess">'+
+        '<button class="btn" data-v="line">'+(lang==='id'?'Pakai garis lurus saja':'Just use a straight line')+'</button>'+
+        '<button class="btn" data-v="curve">'+(lang==='id'?'Perlu kurva dibatasi 0–1':'Need a curve bounded 0–1')+'</button>'+
+      '</div>'+
+      '<div id="lg-after" style="display:none;margin-top:16px;">'+
+        '<div id="lg-plot"></div>'+
+        '<p class="readout" style="margin:4px 0;">'+(lang==='id'?'Kurva-S (sigmoid) memetakan jam belajar → peluang lulus, selalu di antara 0 dan 1.':'The S-curve (sigmoid) maps hours → probability of passing, always between 0 and 1.')+'</p>'+
+        '<label class="fld" style="display:block;">'+(lang==='id'?'Ambang keputusan: ':'Decision threshold: ')+'<b id="lg-tv">50%</b></label>'+
+        '<input type="range" id="lg-r" min="0.1" max="0.9" value="0.5" step="0.05" oninput="(window.__lg_u&&window.__lg_u())"/>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;">'+
+          '<div style="background:#FCE7F3;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Batas keputusan':'Decision boundary')+'</div><div class="big" id="lg-bound" style="font-size:20px;color:#DB2777;"></div></div>'+
+          '<div style="background:#ECFDF5;border-radius:10px;padding:11px;"><div class="readout">'+(lang==='id'?'Akurasi':'Accuracy')+'</div><div class="big" id="lg-acc" style="font-size:20px;color:#16A34A;"></div></div>'+
+        '</div>'+
+        '<div class="feedback" id="lg-fb" style="display:block;"></div>'+
+      '</div>';
+    host.querySelectorAll('#lg-guess button').forEach(function(b){ b.onclick=function(){
+      document.getElementById('lg-after').style.display='block';
+      document.getElementById('lg-fb').innerHTML=(lang==='id'
+        ?'Garis lurus bisa menembus 100% atau di bawah 0% — tak masuk akal untuk peluang. Regresi logistik membungkus garis lurus (β₀+β₁x) ke dalam fungsi <b>sigmoid</b> yang selalu menghasilkan 0–1. Geser ambang keputusan: menurunkannya menangkap lebih banyak yang lulus tapi juga lebih banyak salah vonis. Batas keputusan bergeser, akurasi berubah.'
+        :'A straight line can shoot past 100% or below 0% — nonsensical for a probability. Logistic regression wraps the straight line (β₀+β₁x) in a <b>sigmoid</b> that always outputs 0–1. Slide the decision threshold: lowering it catches more passers but also more false calls. The decision boundary shifts and accuracy changes.');
+      draw(); reveal();
+    };});
+  },
+  concept:{
+    name:{id:'Regresi logistik', en:'Logistic regression'}, sub:{id:'David Cox, 1958', en:'David Cox, 1958'},
+    def:{id:'Model untuk memprediksi hasil biner (ya/tidak) dengan memodelkan peluang kejadian sebagai fungsi sigmoid dari kombinasi linier prediktor, sehingga keluarannya selalu berada di antara 0 dan 1.', en:'A model for predicting a binary outcome (yes/no) by modeling the probability of the event as a sigmoid function of a linear combination of predictors, so the output always lies between 0 and 1.'},
+    formula:'P(y=1) = 1 / (1 + e^−(<span class="v">β₀</span>+<span class="v">β₁</span>x))   ·   log( p/(1−p) ) = β₀+β₁x',
+    theory:{id:'Trik utamanya adalah memodelkan log-odds (logit) secara linier, bukan peluangnya langsung. Fungsi sigmoid adalah kebalikan logit: ia memencet seluruh garis bilangan ke rentang (0,1). Koefisien β₁ ditafsirkan sebagai perubahan log-odds per satu satuan x; e^β₁ adalah rasio odds. Model dilatih dengan maximum likelihood, bukan kuadrat terkecil.', en:'The key trick is to model the log-odds (logit) linearly, not the probability directly. The sigmoid is the inverse of the logit: it squeezes the entire number line into the range (0,1). The coefficient β₁ is read as the change in log-odds per one unit of x; e^β₁ is the odds ratio. The model is trained with maximum likelihood, not least squares.'},
+    practice:{id:'Regresi logistik adalah fondasi klasifikasi: deteksi penipuan, prediksi churn, diagnosis medis, skor kredit. Pemilihan ambang keputusan adalah keputusan bisnis, bukan statistik — menukar antara false positive dan false negative sesuai biayanya (lihat kurva ROC). Akurasi bisa menyesatkan pada kelas yang timpang; gunakan juga precision, recall, dan AUC.', en:'Logistic regression is the foundation of classification: fraud detection, churn prediction, medical diagnosis, credit scoring. Choosing the decision threshold is a business decision, not a statistical one — trading off false positives and false negatives by their costs (see the ROC curve). Accuracy can mislead on imbalanced classes; also use precision, recall, and AUC.'}
+  }
+});
+
 /* ============================ rendering ============================ */
 var activeCat='__all', activeId=null;
 
